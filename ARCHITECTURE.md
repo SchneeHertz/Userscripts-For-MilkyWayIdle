@@ -121,8 +121,3 @@ Vite 的中间产物写入 `temp/vite-build/`，可直接安装的文件仍为�
 3. 如需启动 Observer/定时器，导出一个具名初始化函数，并在 `src/entry.ts` 的 `initializeGameFeatures()` 调用；
 4. 将文件加入 `src/manifest.json`；
 5. 执行 `npm run check`，重新生成并检查 `MWITools.js`。
-
-## 未纳入主脚本构建的文件
-
-- `MWITools addon for Steam version.js`：第三方库的完整副本，保持独立；
-- `MWIMarketAPICache.js`：独立的 Node/Express 市场缓存服务，不属于 userscript bundle。

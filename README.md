@@ -33,8 +33,3 @@ npm run check      # typecheck + build + syntax check
 ```
 
 源码为 TypeScript，Vite 按 [`src/manifest.json`](./src/manifest.json) 中声明的顺序将模块编译进单个可安装的 `MWITools.js`。模块边界、启动流程与新增功能的方式见 [`ARCHITECTURE.md`](./ARCHITECTURE.md)。
-
-# Others
-
-- `MWITools addon for Steam version.js`：Steam 客户端独立兼容插件，单独维护；
-- `MWIMarketAPICache.js`：独立的 Node/Express 市场缓存服务，不属于 userscript bundle。
