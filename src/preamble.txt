@@ -1,15 +1,8 @@
 /*
-    Steam客户端玩家还需要额外安装兼容插件。
-
-    MilkyWayIdle Steam game client players should also install this script:
-    https://raw.githubusercontent.com/YangLeda/Userscripts-For-MilkyWayIdle/refs/heads/main/MWITools%20addon%20for%20Steam%20version.js
-*/
-
-/*
-    【遇到MWITools插件有问题时的解决方法】
+    【遇到 MWITools-Lite 插件有问题时的解决方法】
 
     请先务必排查以下问题：
-    1. 你的MWITools插件已更新至最新版（greasyfork网站有可能被墙，请开梯子更新；或者到QQ群文件里下载后手动导入或复制粘贴代码）；
+    1. 你的 MWITools-Lite 插件已更新至最新版（greasyfork网站有可能被墙，请开梯子更新；或者到QQ群文件里下载后手动导入或复制粘贴代码）；
     2. 你没有重复安装插件（有的人装了新版本插件，但还有个旧版本的没有删除，在同时运行；或者有的人在同一个浏览器里装了两个油猴类浏览器插件）；
     3. 安装或更新完插件后，以及在游戏设置里切换过语言后，必须刷新游戏网页；
     4. 请在电脑上、使用最新版本Chrome浏览器、使用最新版本TamperMonkey（油猴）插件尝试（作者精力有限，做不到逐个适配各种环境、为每个人定位环境问题，

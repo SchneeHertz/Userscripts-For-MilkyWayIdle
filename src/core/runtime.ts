@@ -76,7 +76,7 @@ function handleMessage(message: string) {
     try {
         obj = JSON.parse(message);
     } catch (error) {
-        console.warn("MWITools: unable to parse WS message", error);
+        console.warn("MWITools-Lite: unable to parse WS message", error);
         return message;
     }
     const handlers = messageHandlers.get(obj?.type) || [];

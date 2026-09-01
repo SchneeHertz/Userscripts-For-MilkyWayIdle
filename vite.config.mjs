@@ -5,7 +5,7 @@ import { userscriptBundlePlugin } from "./scripts/vite-userscript-plugin.mjs";
 
 const projectDirectory = path.dirname(fileURLToPath(import.meta.url));
 const sourceDirectory = path.join(projectDirectory, "src");
-const outputFileName = "MWITools.js";
+const outputFileName = "MWITools-Lite.user.js";
 const installableOutputPath = path.join(projectDirectory, outputFileName);
 const temporaryOutputDirectory = path.join(projectDirectory, "temp", "vite-build");
 
@@ -21,7 +21,7 @@ export default defineConfig({
         reportCompressedSize: false,
         lib: {
             entry: path.join(sourceDirectory, "vite-entry.ts"),
-            name: "MWITools",
+            name: "MWIToolsLite",
             formats: ["iife"],
             fileName: () => outputFileName,
         },

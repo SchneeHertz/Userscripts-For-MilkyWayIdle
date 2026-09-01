@@ -9,7 +9,7 @@ function notificate() {
     }
     GM_notification({
         text: isZH ? "动作队列为空" : "Action queue is empty.",
-        title: "MWITools",
+        title: "MWITools-Lite",
     });
 }
 

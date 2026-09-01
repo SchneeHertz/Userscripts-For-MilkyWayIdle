@@ -1,8 +1,8 @@
-# MWITools 模块化架构
+# MWITools-Lite 模块化架构
 
 ## 改造背景
 
-原始 `MWITools.js` 是约 7,200 行、500 KB 的单文件 IIFE，包含以下不同职责：
+原始脚本是约 7,200 行、500 KB 的单文件 IIFE，包含以下不同职责：
 
 - userscript 元数据与启动逻辑；
 - 设置、语言字典和市场离线数据；
@@ -45,7 +45,7 @@ scripts/
 package.json                # Vite/TypeScript 命令与 Node.js 版本约束
 tsconfig.json               # 仅类型检查（noEmit）
 vite.config.mjs             # Vite/Rolldown userscript 构建配置
-MWITools.js                 # 生成后的可安装 userscript
+MWITools-Lite.user.js       # 生成后的可安装 userscript
 ```
 
 ## 运行模型
@@ -54,7 +54,7 @@ MWITools.js                 # 生成后的可安装 userscript
 
 Tampermonkey/Steam 需要一个可直接安装的经典 userscript，因此业务源码采用 TypeScript 编写，但仍为共享作用域的构建时模块（不引入浏览器原生 ESM）。`src/vite-entry.ts` 引用一个虚拟入口，`scripts/vite-userscript-plugin.mjs` 按 `src/manifest.json` 读取 `.ts` 模块，Vite/Rolldown 将其转译并输出为严格模式 IIFE。
 
-插件在产物顶部注入 userscript 元数据和说明，并把最终文件同步到根目录 `MWITools.js`。这保留了单文件安装体验，同时由 Vite 统一负责转译、监听和打包，由 TypeScript 负责静态类型检查。`MWITools.js` 是构建产物，不应手工编辑；由于它与源码一起提交，修改源码后需重新构建并提交，避免仓库产物过期。
+插件在产物顶部注入 userscript 元数据和说明，并把最终文件同步到根目录 `MWITools-Lite.user.js`。这保留了单文件安装体验，同时由 Vite 统一负责转译、监听和打包，由 TypeScript 负责静态类型检查。`MWITools-Lite.user.js` 是构建产物，不应手工编辑；由于它与源码一起提交，修改源码后需重新构建并提交，避免仓库产物过期。
 
 构建时插件会校验 `manifest.json`：`core/runtime` 必须位于第一个 feature/integration 模块之前（共享作用域依赖顺序），且模块名不得重复。
 
@@ -112,7 +112,7 @@ npm run typecheck
 npm run check
 ```
 
-Vite 的中间产物写入 `temp/vite-build/`，可直接安装的文件仍为根目录 `MWITools.js`。
+Vite 的中间产物写入 `temp/vite-build/`，可直接安装的文件仍为根目录 `MWITools-Lite.user.js`。
 
 ## 新增功能
 
@@ -120,4 +120,4 @@ Vite 的中间产物写入 `temp/vite-build/`，可直接安装的文件仍为�
 2. 如需响应游戏消息，调用 `registerMessageHandler`；
 3. 如需启动 Observer/定时器，导出一个具名初始化函数，并在 `src/entry.ts` 的 `initializeGameFeatures()` 调用；
 4. 将文件加入 `src/manifest.json`；
-5. 执行 `npm run check`，重新生成并检查 `MWITools.js`。
+5. 执行 `npm run check`，重新生成并检查 `MWITools-Lite.user.js`。

@@ -1,6 +1,16 @@
-# MWITools
+# MWITools-Lite
 
 Tools for the game MilkyWayIdle. 本插件是中文的（也可切换到英文显示）。
+
+## 从 GitHub 安装与更新
+
+在 Tampermonkey 的“实用工具 → 从 URL 安装”中使用：
+
+```text
+https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js
+```
+
+`.user.js` 后缀可让 Tampermonkey 在打开链接时自动识别安装。脚本通过 `@updateURL` 和 `@downloadURL` 从 GitHub 的 `main` 分支检查并下载更新。由于脚本标识已改为 `MWITools-Lite`，已安装 `MWITools` 的用户应先停用或卸载旧脚本，以免两者同时运行。后续发布时必须递增 [`src/userscript.meta.txt`](./src/userscript.meta.txt) 中的 `@version`，并将重新生成的 `MWITools-Lite.user.js` 一并提交到 `main` 分支。
 
 功能列表：
 
@@ -22,7 +32,7 @@ Tools for the game MilkyWayIdle. 本插件是中文的（也可切换到英文�
 
 # Development
 
-可安装的 userscript 为根目录 [`MWITools.js`](./MWITools.js)，由 `src/` 下的模块构建生成，**不要直接编辑生成文件**。修改源码后请运行 `npm run check` 重新生成并提交，保持仓库内生成文件与源码一致。
+可安装的 userscript 为根目录 [`MWITools-Lite.user.js`](./MWITools-Lite.user.js)，由 `src/` 下的模块构建生成，**不要直接编辑生成文件**。修改源码后请运行 `npm run check` 重新生成并提交，保持仓库内生成文件与源码一致。
 
 ```bash
 npm install
@@ -32,4 +42,4 @@ npm run build
 npm run check      # typecheck + build + syntax check
 ```
 
-源码为 TypeScript，Vite 按 [`src/manifest.json`](./src/manifest.json) 中声明的顺序将模块编译进单个可安装的 `MWITools.js`。模块边界、启动流程与新增功能的方式见 [`ARCHITECTURE.md`](./ARCHITECTURE.md)。
+源码为 TypeScript，Vite 按 [`src/manifest.json`](./src/manifest.json) 中声明的顺序将模块编译进单个可安装的 `MWITools-Lite.user.js`。模块边界、启动流程与新增功能的方式见 [`ARCHITECTURE.md`](./ARCHITECTURE.md)。

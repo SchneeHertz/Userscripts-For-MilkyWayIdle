@@ -8,7 +8,7 @@
     "dev": "vite build --watch",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "check": "tsc --noEmit && vite build && node --check MWITools.js"
+    "check": "tsc --noEmit && vite build && node --check MWITools-Lite.user.js"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

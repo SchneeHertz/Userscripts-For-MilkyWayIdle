@@ -1,7 +1,9 @@
 // ==UserScript==
-// @name         MWITools
+// @name         MWITools-Lite
 // @namespace    http://tampermonkey.net/
 // @version      25.15.1
+// @updateURL    https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js
+// @downloadURL  https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows action number quick inputs. Shows how many actions are needed to reach a certain skill level. Shows skill exp percentages. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows queued action times. Shows DPS statistics. Notifies when idle. Links to third-party tools. Auto-fills the minimum market order price.
 // @author       bot7420, shykai, SchneeHertz
 // @license      CC-BY-NC-SA-4.0
@@ -23,17 +25,10 @@
  */
 
 /*
-    Steam客户端玩家还需要额外安装兼容插件。
-
-    MilkyWayIdle Steam game client players should also install this script:
-    https://raw.githubusercontent.com/YangLeda/Userscripts-For-MilkyWayIdle/refs/heads/main/MWITools%20addon%20for%20Steam%20version.js
-*/
-
-/*
-    【遇到MWITools插件有问题时的解决方法】
+    【遇到 MWITools-Lite 插件有问题时的解决方法】
 
     请先务必排查以下问题：
-    1. 你的MWITools插件已更新至最新版（greasyfork网站有可能被墙，请开梯子更新；或者到QQ群文件里下载后手动导入或复制粘贴代码）；
+    1. 你的 MWITools-Lite 插件已更新至最新版（greasyfork网站有可能被墙，请开梯子更新；或者到QQ群文件里下载后手动导入或复制粘贴代码）；
     2. 你没有重复安装插件（有的人装了新版本插件，但还有个旧版本的没有删除，在同时运行；或者有的人在同一个浏览器里装了两个油猴类浏览器插件）；
     3. 安装或更新完插件后，以及在游戏设置里切换过语言后，必须刷新游戏网页；
     4. 请在电脑上、使用最新版本Chrome浏览器、使用最新版本TamperMonkey（油猴）插件尝试（作者精力有限，做不到逐个适配各种环境、为每个人定位环境问题，
@@ -147,7 +142,7 @@
 		},
 		forceMWIToolsDisplayZH: {
 			id: "forceMWIToolsDisplayZH",
-			desc: isZH ? "MWITools本身强制显示中文 MWITools always in Chinese" : "MWITools本身强制显示中文 MWITools always in Chinese",
+			desc: isZH ? "MWITools-Lite 本身强制显示中文 MWITools-Lite always in Chinese" : "MWITools-Lite 本身强制显示中文 MWITools-Lite always in Chinese",
 			isTrue: false
 		}
 	};
@@ -158,7 +153,7 @@
 		if (targetNode.querySelector("#script_settings")) return true;
 		targetNode.insertAdjacentHTML("beforeend", `<div id="script_settings"></div>`);
 		const insertElem = targetNode.querySelector("div#script_settings");
-		insertElem.insertAdjacentHTML("beforeend", `<div style="float: left; color: ${SCRIPT_COLOR_MAIN}">${isZH ? "MWITools 设置 （刷新生效）：" : "MWITools Settings (refresh page to apply): "}</div></br>`);
+		insertElem.insertAdjacentHTML("beforeend", `<div style="float: left; color: ${SCRIPT_COLOR_MAIN}">${isZH ? "MWITools-Lite 设置 （刷新生效）：" : "MWITools-Lite Settings (refresh page to apply): "}</div></br>`);
 		for (const setting of Object.values(settingsMap)) insertElem.insertAdjacentHTML("beforeend", `<div style="float: left;"><input type="checkbox" id="${setting.id}" ${setting.isTrue ? "checked" : ""}></input>${setting.desc}</div></br>`);
 		insertElem.insertAdjacentHTML("beforeend", `<div style="float: left;">${isZH ? "代码里搜索“自定义”可以手动修改字体颜色" : `Search "Customization" in code to customize font colors.`}</div></br>`);
 		insertElem.addEventListener("change", saveSettings);
@@ -2263,7 +2258,7 @@
 		try {
 			obj = JSON.parse(message);
 		} catch (error) {
-			console.warn("MWITools: unable to parse WS message", error);
+			console.warn("MWITools-Lite: unable to parse WS message", error);
 			return message;
 		}
 		const handlers = messageHandlers.get(obj?.type) || [];
@@ -3062,7 +3057,7 @@
 		if (currentActionsHridList.length > 0) return;
 		GM_notification({
 			text: isZH ? "动作队列为空" : "Action queue is empty.",
-			title: "MWITools"
+			title: "MWITools-Lite"
 		});
 	}
 	function initializeIdleNotification() {

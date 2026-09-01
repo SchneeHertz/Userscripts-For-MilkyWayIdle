@@ -2,7 +2,7 @@ const THOUSAND_SEPERATOR = new Intl.NumberFormat().format(1111).replaceAll("1", 
 const DECIMAL_SEPERATOR = new Intl.NumberFormat().format(1.1).replaceAll("1", "").charAt(0);
 
 const isZHInGameSetting = Boolean(localStorage.getItem("i18nextLng")?.toLowerCase()?.startsWith("zh")); // 获取游戏内设置语言
-let isZH: boolean = isZHInGameSetting; // MWITools 本身显示的语言默认由游戏内设置语言决定
+let isZH: boolean = isZHInGameSetting; // MWITools-Lite 本身显示的语言默认由游戏内设置语言决定
 
 /* 自定义插件字体颜色 */
 /* 找颜色自行网上搜索"CSS颜色" */
@@ -127,7 +127,7 @@ const settingsMap: Record<string, ScriptSetting> = {
     },
     forceMWIToolsDisplayZH: {
         id: "forceMWIToolsDisplayZH",
-        desc: isZH ? "MWITools本身强制显示中文 MWITools always in Chinese" : "MWITools本身强制显示中文 MWITools always in Chinese",
+        desc: isZH ? "MWITools-Lite 本身强制显示中文 MWITools-Lite always in Chinese" : "MWITools-Lite 本身强制显示中文 MWITools-Lite always in Chinese",
         isTrue: false,
     },
 };
@@ -147,7 +147,7 @@ function tryInsertSettingsPanel(): boolean {
     insertElem.insertAdjacentHTML(
         "beforeend",
         `<div style="float: left; color: ${SCRIPT_COLOR_MAIN}">${
-            isZH ? "MWITools 设置 （刷新生效）：" : "MWITools Settings (refresh page to apply): "
+            isZH ? "MWITools-Lite 设置 （刷新生效）：" : "MWITools-Lite Settings (refresh page to apply): "
         }</div></br>`
     );
 
