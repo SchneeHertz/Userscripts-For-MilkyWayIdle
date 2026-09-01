@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      25.14
+// @version      25.15.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows action number quick inputs. Shows how many actions are needed to reach a certain skill level. Shows skill exp percentages. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows queued action times. Shows DPS statistics. Notifies when idle. Links to third-party tools. Auto-fills the minimum market order price.
 // @author       bot7420, shykai, SchneeHertz
 // @license      CC-BY-NC-SA-4.0
@@ -2294,8 +2294,26 @@
 		applyClientData(obj);
 	}
 	function handleActionsUpdated(obj) {
-		for (const action of obj.endCharacterActions) if (action.isDone === false) currentActionsHridList.push(action);
-		else currentActionsHridList = currentActionsHridList.filter((queuedAction) => queuedAction.id !== action.id);
+		let shouldSortActions = false;
+		for (const action of obj.endCharacterActions) {
+			if (action.isDone) {
+				currentActionsHridList = currentActionsHridList.filter((queuedAction) => queuedAction.id !== action.id);
+				continue;
+			}
+			const existingActionIndex = currentActionsHridList.findIndex((queuedAction) => queuedAction.id === action.id);
+			if (existingActionIndex >= 0) {
+				if (currentActionsHridList[existingActionIndex].ordinal !== action.ordinal) shouldSortActions = true;
+				currentActionsHridList[existingActionIndex] = action;
+			} else {
+				currentActionsHridList.push(action);
+				shouldSortActions = true;
+			}
+		}
+		if (shouldSortActions) currentActionsHridList.sort((actionA, actionB) => {
+			if (actionA.partyID !== 0 && actionB.partyID === 0) return -1;
+			if (actionA.partyID === 0 && actionB.partyID !== 0) return 1;
+			return actionA.ordinal - actionB.ordinal;
+		});
 	}
 	function handleActionCompleted(obj) {
 		const action = obj.endCharacterAction;

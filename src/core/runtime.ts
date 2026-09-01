@@ -117,12 +117,36 @@ function handleInitClientData(obj: any, message: string) {
 }
 
 function handleActionsUpdated(obj: any) {
+    let shouldSortActions = false;
+
     for (const action of obj.endCharacterActions) {
-        if (action.isDone === false) {
-            currentActionsHridList.push(action);
-        } else {
+        if (action.isDone) {
             currentActionsHridList = currentActionsHridList.filter((queuedAction) => queuedAction.id !== action.id);
+            continue;
         }
+
+        const existingActionIndex = currentActionsHridList.findIndex((queuedAction) => queuedAction.id === action.id);
+        if (existingActionIndex >= 0) {
+            if (currentActionsHridList[existingActionIndex].ordinal !== action.ordinal) {
+                shouldSortActions = true;
+            }
+            currentActionsHridList[existingActionIndex] = action;
+        } else {
+            currentActionsHridList.push(action);
+            shouldSortActions = true;
+        }
+    }
+
+    if (shouldSortActions) {
+        currentActionsHridList.sort((actionA, actionB) => {
+            if (actionA.partyID !== 0 && actionB.partyID === 0) {
+                return -1;
+            }
+            if (actionA.partyID === 0 && actionB.partyID !== 0) {
+                return 1;
+            }
+            return actionA.ordinal - actionB.ordinal;
+        });
     }
 }
 
