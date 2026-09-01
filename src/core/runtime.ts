@@ -1,12 +1,15 @@
 let initData_characterSkills: any[] | null = null;
 let initData_characterItems: any[] | null = null;
 let initData_characterHouseRoomMap: Record<string, any> | null = null;
+let initData_characterAchievements: Record<string, any> | null = null;
 let initData_actionTypeDrinkSlotsMap: Record<string, any> | null = null;
 let initData_actionDetailMap: Record<string, any> | null = null;
 let initData_levelExperienceTable: any[] | null = null;
 let initData_itemDetailMap: Record<string, any> | null = null;
 let initData_actionCategoryDetailMap: Record<string, any> | null = null;
 let initData_abilityDetailMap: Record<string, any> | null = null;
+let initData_achievementDetailMap: Record<string, any> | null = null;
+let initData_achievementTierDetailMap: Record<string, any> | null = null;
 
 let currentActionsHridList: any[] = [];
 
@@ -89,6 +92,8 @@ function applyClientData(obj: any) {
     initData_itemDetailMap = obj.itemDetailMap;
     initData_actionCategoryDetailMap = obj.actionCategoryDetailMap;
     initData_abilityDetailMap = obj.abilityDetailMap;
+    initData_achievementDetailMap = obj.achievementDetailMap;
+    initData_achievementTierDetailMap = obj.achievementTierDetailMap;
 
     for (const [key, value] of Object.entries(initData_itemDetailMap)) {
         itemEnNameToHridMap[value.name] = key;
@@ -101,6 +106,7 @@ function handleInitCharacterData(obj: any, message: string) {
     initData_characterSkills = obj.characterSkills;
     initData_characterItems = obj.characterItems;
     initData_characterHouseRoomMap = obj.characterHouseRoomMap;
+    initData_characterAchievements = obj.characterAchievements;
     initData_actionTypeDrinkSlotsMap = obj.actionTypeDrinkSlotsMap;
     currentActionsHridList = [...obj.characterActions];
 }

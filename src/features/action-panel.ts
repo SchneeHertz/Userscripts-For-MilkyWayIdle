@@ -192,14 +192,17 @@ async function handleActionPanel(panel) {
         });
     }
 
-    // 显示每小时经验
+    // 显示每小时经验（成就阶段 Wisdom 增益计入经验）
+    const achievementWisdomBuff = getAchievementTierBuffsForAction(actionHrid)
+        .filter((buff) => buff.typeHrid === "/buff_types/wisdom")
+        .reduce((sum, buff) => sum + buff.percent, 0);
     panel
         .querySelector("div#tillLevel")
         .insertAdjacentHTML(
             "afterend",
             `<div id="expPerHour" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${isZH ? "每小时经验: " : "Exp/hour: "}${numberFormatter(
-                Math.round((3600 / duration) * exp * effBuff)
-            )} (+${Number((effBuff - 1) * 100).toFixed(1)}%${isZH ? "效率" : " eff"})</div>`
+                Math.round((3600 / duration) * exp * effBuff * (1 + achievementWisdomBuff / 100))
+            )} (+${Number((effBuff - 1) * 100).toFixed(1)}%${isZH ? "效率" : " eff"}${achievementWisdomBuff ? ` / +${achievementWisdomBuff}%${isZH ? "成就经验" : " ach"}` : ""})</div>`
         );
 
 }
@@ -240,8 +243,15 @@ function getTotalEffiPercentage(actionHrid, debug = false) {
     if (debug) {
         console.log("特殊装备 " + itemEffiBuff);
     }
+    // 成就阶段增益（仅效率类影响动作时间，如 Adept Efficiency）
+    const achievementEffBuff = getAchievementTierBuffsForAction(actionHrid)
+        .filter((buff) => buff.typeHrid === "/buff_types/efficiency")
+        .reduce((sum, buff) => sum + buff.percent, 0);
+    if (debug) {
+        console.log("成就 " + achievementEffBuff);
+    }
     // 总效率
-    const total = levelEffBuff + houseEffBuff + teaBuffs.efficiency + Number(itemEffiBuff);
+    const total = levelEffBuff + houseEffBuff + teaBuffs.efficiency + Number(itemEffiBuff) + achievementEffBuff;
     if (debug) {
         console.log("总计 " + total);
     }

@@ -55,3 +55,50 @@ function buildCombatSkillLevels(skills: any[] | null | undefined): Record<string
     });
     return result;
 }
+
+/* 成就阶段增益：
+ * MWI 的成就阶段（Beginner/Novice/Adept/Veteran/Elite/Champion）每档提供 1 个常驻增益，
+ * 增益数值在 achievementTierDetailMap 中，判定阈值游戏未给出，
+ * 这里按“该 tier 内成就完成率 >= 50% 视为已解锁”处理（可校准，见常量）。
+ */
+const ACHIEVEMENT_TIER_UNLOCK_RATE = 0.5;
+
+/* 当前角色已解锁的成就阶段列表（无角色数据时不判定，返回空） */
+function getUnlockedAchievementTiers(): any[] {
+    if (!initData_characterAchievements) {
+        return [];
+    }
+    const tiers = Object.values(initData_achievementTierDetailMap ?? {}).sort((a, b) => a.sortIndex - b.sortIndex);
+    const achievements = Object.values(initData_achievementDetailMap ?? {});
+    const unlocked: any[] = [];
+    for (const tier of tiers) {
+        const tierAchievements = achievements.filter((a) => a.tierHrid === tier.hrid);
+        const total = tierAchievements.length;
+        if (!total) {
+            continue;
+        }
+        const done = tierAchievements.filter((a) => initData_characterAchievements?.[a.hrid]?.isCompleted).length;
+        if (done / total >= ACHIEVEMENT_TIER_UNLOCK_RATE) {
+            unlocked.push(tier);
+        }
+    }
+    return unlocked;
+}
+
+/* 对指定动作生效的成就阶段增益列表 [{ typeHrid, percent }] */
+function getAchievementTierBuffsForAction(actionHrid: string): { typeHrid: string; percent: number }[] {
+    const actionDetail = initData_actionDetailMap?.[actionHrid];
+    if (!actionDetail?.type) {
+        return [];
+    }
+    const result: { typeHrid: string; percent: number }[] = [];
+    for (const tier of getUnlockedAchievementTiers()) {
+        if (!tier.usableInActionTypeMap?.[actionDetail.type]) {
+            continue;
+        }
+        const buff = tier.buff;
+        const percent = (buff.ratioBoost ?? buff.flatBoost ?? 0) * 100;
+        result.push({ typeHrid: buff.typeHrid, percent });
+    }
+    return result;
+}
