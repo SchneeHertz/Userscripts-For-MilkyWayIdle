@@ -40,7 +40,9 @@ function calculateTotalTime() {
     const progressBar = document.querySelector(".ProgressBar_text__102Yn");
     const progressBarMatch = progressBar && getOriTextFromElement(progressBar).match(/[\d\.]+/);
     const currentAction = currentActionsHridList[0];
-    if (match && progressBarMatch && currentAction?.actionHrid) {
+    if (currentAction?.actionHrid?.includes("/combat/")) {
+        totalTimeStr = " [∞]";
+    } else if (match && progressBarMatch && currentAction?.actionHrid) {
         const numOfTimes = +match[1];
         const timePerActionSec = +progressBarMatch[0];
         const actionHrid = currentAction.actionHrid;

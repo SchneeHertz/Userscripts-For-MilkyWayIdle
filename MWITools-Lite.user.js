@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools-Lite
 // @namespace    http://tampermonkey.net/
-// @version      25.15.1
+// @version      25.15.2
 // @updateURL    https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js
 // @downloadURL  https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows action number quick inputs. Shows how many actions are needed to reach a certain skill level. Shows skill exp percentages. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows queued action times. Shows DPS statistics. Notifies when idle. Links to third-party tools. Auto-fills the minimum market order price.
@@ -2491,7 +2491,8 @@
 		const progressBar = document.querySelector(".ProgressBar_text__102Yn");
 		const progressBarMatch = progressBar && getOriTextFromElement(progressBar).match(/[\d\.]+/);
 		const currentAction = currentActionsHridList[0];
-		if (match && progressBarMatch && currentAction?.actionHrid) {
+		if (currentAction?.actionHrid?.includes("/combat/")) totalTimeStr = " [∞]";
+		else if (match && progressBarMatch && currentAction?.actionHrid) {
 			const numOfTimes = +match[1];
 			const timePerActionSec = +progressBarMatch[0];
 			const actionHrid = currentAction.actionHrid;
