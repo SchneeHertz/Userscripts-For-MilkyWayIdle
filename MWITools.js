@@ -2786,30 +2786,6 @@
 				div = document.createElement("div");
 				div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
 				div.style.color = SCRIPT_COLOR_MAIN;
-				div.innerHTML = isZH ? "利润计算 Mooneycalc" : "Profit calc Mooneycalc";
-				div.addEventListener("click", () => {
-					window.open("https://mooneycalc.netlify.app/", "_blank");
-				});
-				targetNode.insertAdjacentElement("afterbegin", div);
-				div = document.createElement("div");
-				div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
-				div.style.color = SCRIPT_COLOR_MAIN;
-				div.innerHTML = isZH ? "利润计算 Milkonomy" : "Profit calc Milkonomy";
-				div.addEventListener("click", () => {
-					window.open("https://milkonomy.pages.dev/", "_blank");
-				});
-				targetNode.insertAdjacentElement("afterbegin", div);
-				div = document.createElement("div");
-				div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
-				div.style.color = SCRIPT_COLOR_MAIN;
-				div.innerHTML = isZH ? "利润计算 Cowculator" : "Profit calc Cowculator";
-				div.addEventListener("click", () => {
-					window.open("https://danthegoodman.github.io/cowculator/", "_blank");
-				});
-				targetNode.insertAdjacentElement("afterbegin", div);
-				div = document.createElement("div");
-				div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
-				div.style.color = SCRIPT_COLOR_MAIN;
 				div.innerHTML = isZH ? "强化模拟 Enhancelator" : "Enhancement sim Enhancelator";
 				div.addEventListener("click", () => {
 					window.open("https://doh-nuts.github.io/Enhancelator/", "_blank");
