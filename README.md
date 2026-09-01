@@ -2,15 +2,11 @@
 
 Tools for the game MilkyWayIdle. 本插件是中文的（也可切换到英文显示）。
 
-## 从 GitHub 安装与更新
+## 安装与更新
 
-在 Tampermonkey 的“实用工具 → 从 URL 安装”中使用：
+[点击安装 MWITools-Lite](https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js)
 
-```text
-https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js
-```
-
-`.user.js` 后缀可让 Tampermonkey 在打开链接时自动识别安装。脚本通过 `@updateURL` 和 `@downloadURL` 从 GitHub 的 `main` 分支检查并下载更新。由于脚本标识已改为 `MWITools-Lite`，已安装 `MWITools` 的用户应先停用或卸载旧脚本，以免两者同时运行。后续发布时必须递增 [`src/userscript.meta.txt`](./src/userscript.meta.txt) 中的 `@version`，并将重新生成的 `MWITools-Lite.user.js` 一并提交到 `main` 分支。
+安装后，Tampermonkey 会通过 GitHub 自动检查并获取脚本更新。
 
 功能列表：
 
