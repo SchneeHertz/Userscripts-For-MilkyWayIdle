@@ -1,0 +1,26 @@
+{
+  "modules": [
+    { "name": "core/settings", "path": "core/settings.ts" },
+    { "name": "i18n/items", "path": "i18n/items.ts" },
+    { "name": "i18n/actions", "path": "i18n/actions.ts" },
+    { "name": "i18n/others", "path": "i18n/others.ts" },
+    { "name": "i18n/mappings", "path": "i18n/mappings.ts" },
+    { "name": "core/runtime", "path": "core/runtime.ts" },
+    { "name": "core/dom-translation", "path": "core/dom-translation.ts" },
+    { "name": "features/action-efficiency", "path": "features/action-efficiency.ts" },
+    { "name": "features/action-time", "path": "features/action-time.ts" },
+    { "name": "features/action-panel", "path": "features/action-panel.ts" },
+    { "name": "features/experience-percentage", "path": "features/experience-percentage.ts" },
+    { "name": "features/battle-summary", "path": "features/battle-summary.ts" },
+    { "name": "features/item-icons", "path": "features/item-icons.ts" },
+    { "name": "features/map-indexes", "path": "features/map-indexes.ts" },
+    { "name": "features/navigation-links", "path": "features/navigation-links.ts" },
+    { "name": "features/action-queue", "path": "features/action-queue.ts" },
+    { "name": "features/idle-notification", "path": "features/idle-notification.ts" },
+    { "name": "features/market-order-pricing", "path": "features/market-order-pricing.ts" },
+    { "name": "features/damage-statistics", "path": "features/damage-statistics.ts" },
+    { "name": "integrations/profile-export", "path": "integrations/profile-export.ts" },
+    { "name": "integrations/combat-simulator", "path": "integrations/combat-simulator.ts" },
+    { "name": "entry", "path": "entry.ts" }
+  ]
+}
