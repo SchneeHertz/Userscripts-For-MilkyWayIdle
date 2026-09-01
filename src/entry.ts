@@ -20,8 +20,6 @@ function initializeGameFeatures() {
 }
 
 function startMWITools() {
-    console.log(window.location.href);
-
     if (initializeExternalTools()) {
         return;
     }

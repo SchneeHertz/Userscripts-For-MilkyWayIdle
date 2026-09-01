@@ -16,7 +16,7 @@ function getItemEnNameFromZhName(zhName: string): string {
         console.log("Can not find EN name for item " + zhName);
         return "";
     }
-    const enName = initData_itemDetailMap[itemHrid]?.name;
+    const enName = initData_itemDetailMap?.[itemHrid]?.name;
     if (!enName) {
         console.log("Can not find EN name for itemHrid " + itemHrid);
         return "";
@@ -30,7 +30,7 @@ function getActionEnNameFromZhName(zhName: string): string {
         console.log("Can not find EN name for action " + zhName);
         return "";
     }
-    const enName = initData_actionDetailMap[actionHrid]?.name;
+    const enName = initData_actionDetailMap?.[actionHrid]?.name;
     if (!enName) {
         console.log("Can not find EN name for actionHrid " + actionHrid);
         return "";

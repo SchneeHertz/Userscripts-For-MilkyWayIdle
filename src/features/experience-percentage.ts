@@ -1,38 +1,39 @@
 /* 左侧栏显示技能百分比 */
-const waitForProgressBar = () => {
+function updateProgressBars() {
     const elements = document.querySelectorAll(".NavigationBar_currentExperience__3GDeX");
-    if (elements.length) {
-        removeInsertedDivs();
-        elements.forEach((element) => {
-            let text = element.style.width;
-            text = Number(text.replace("%", "")).toFixed(2) + "%";
+    for (const element of elements) {
+        const pctText = Number((element.style.width || "").replace("%", "") || "0").toFixed(2) + "%";
 
-            const span = document.createElement("span");
-            span.textContent = text;
+        const levelLabel = element.parentNode?.parentNode?.querySelector("span.NavigationBar_level__3C7eR");
+        if (levelLabel) {
+            levelLabel.style.width = "auto";
+        }
+
+        const insertParent = element.parentNode?.parentNode?.children[0] ?? null;
+        if (!insertParent) {
+            continue;
+        }
+        let span = insertParent.querySelector<HTMLSpanElement>("span.insertedSpan");
+        if (!span) {
+            span = document.createElement("span");
+            span.textContent = pctText;
             span.classList.add("insertedSpan");
             span.style.fontSize = "0.875rem";
             span.style.color = SCRIPT_COLOR_MAIN;
-
-            element.parentNode.parentNode.querySelector("span.NavigationBar_level__3C7eR").style.width = "auto";
-
-            const insertParent = element.parentNode.parentNode.children[0];
-            insertParent.insertBefore(span, insertParent.children[1]);
-        });
-    } else {
-        setTimeout(waitForProgressBar, 200);
+        } else if (span.textContent === pctText) {
+            continue; // 数值未变，不触碰 DOM
+        } else {
+            span.textContent = pctText;
+            continue;
+        }
+        insertParent.insertBefore(span, insertParent.children[1]);
     }
-};
-
-const removeInsertedDivs = () => document.querySelectorAll("span.insertedSpan").forEach((div) => div.parentNode.removeChild(div));
+}
 
 function initializeExperiencePercentage() {
     if (!settingsMap.expPercentage.isTrue) {
         return;
     }
 
-    window.setInterval(() => {
-        removeInsertedDivs();
-        waitForProgressBar();
-    }, 1000);
+    setInterval(updateProgressBars, 1000);
 }
-

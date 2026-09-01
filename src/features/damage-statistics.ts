@@ -19,19 +19,19 @@ const lang = {
     aura: isZH ? "光环" : "Aura",
 };
 
-let totalDamage = [];
+let totalDamage: any[] = [];
 let totalDuration = 0;
-let startTime = null;
-let endTime = null;
-let monstersHP = [];
-let playersMP = [];
-let players = [];
-let monsters = [];
+let startTime: number | null = null;
+let endTime: number | null = null;
+let monstersHP: any[] = [];
+let playersMP: any[] = [];
+let players: any[] = [];
+let monsters: any[] = [];
 let dragging = false;
-let chart = null;
-let monsterCounts = {}; // Object to store monster counts
-let monsterEvasion = {}; // Object to store monster evasion ratings by combat style
-let monsterHrids = {};
+let chart: any = null;
+let monsterCounts: any = {}; // Object to store monster counts
+let monsterEvasion: any = {}; // Object to store monster evasion ratings by combat style
+let monsterHrids: any = {};
 const calculateHitChance = (accuracy, evasion) => {
     const hitChance = (Math.pow(accuracy, 1.4) / (Math.pow(accuracy, 1.4) + Math.pow(evasion, 1.4))) * 100;
     return hitChance;
@@ -80,15 +80,14 @@ const getStatisticsDom = () => {
         panel.className = "script_dps_panel";
 
         let offsetX, offsetY;
-        let dragging = false;
 
-        const panelHeader = panel.querySelector<HTMLElement>("#panelHeader");
+        const panelHeader = panel.querySelector<HTMLElement>("#panelHeader")!;
 
         // 鼠标拖动面板
         panelHeader.addEventListener("mousedown", function (e) {
             const rect = panel.getBoundingClientRect();
             const isResizing = e.clientX > rect.right - 10 || e.clientY > rect.bottom - 10;
-            if (isResizing || e.target.id === "script_toggleButton") return;
+            if (isResizing || (e.target as Element)?.id === "script_toggleButton") return;
             dragging = true;
             offsetX = e.clientX - panel.offsetLeft;
             offsetY = e.clientY - panel.offsetTop;
@@ -118,7 +117,7 @@ const getStatisticsDom = () => {
             const rect = panel.getBoundingClientRect();
             const touch = e.touches[0];
             const isResizing = touch.clientX > rect.right - 10 || touch.clientY > rect.bottom - 10;
-            if (isResizing || e.target.id === "script_toggleButton") return;
+            if (isResizing || (e.target as Element)?.id === "script_toggleButton") return;
             dragging = true;
             offsetX = touch.clientX - panel.offsetLeft;
             offsetY = touch.clientY - panel.offsetTop;
@@ -150,16 +149,16 @@ const getStatisticsDom = () => {
             localStorage.setItem("script_dpsPanel_isExpanded", "true");
         }
         if (localStorage.getItem("script_dpsPanel_isExpanded") !== "true") {
-            document.getElementById("script_panelContent").style.display = "none";
-            document.getElementById("script_toggleButton").textContent = lang.toggleButtonShow;
+            document.getElementById("script_panelContent")!.style.display = "none";
+            document.getElementById("script_toggleButton")!.textContent = lang.toggleButtonShow;
         }
 
-        document.getElementById("script_toggleButton").addEventListener("click", function () {
+        document.getElementById("script_toggleButton")!.addEventListener("click", function () {
             let isExpanded = localStorage.getItem("script_dpsPanel_isExpanded") === "true";
             isExpanded = !isExpanded;
             localStorage.setItem("script_dpsPanel_isExpanded", String(isExpanded));
             this.textContent = isExpanded ? lang.toggleButtonHide : lang.toggleButtonShow;
-            const panelContent = document.getElementById("script_panelContent");
+            const panelContent = document.getElementById("script_panelContent")!;
             if (isExpanded) {
                 panelContent.style.display = "block";
                 this.textContent = lang.toggleButtonHide;
@@ -170,7 +169,7 @@ const getStatisticsDom = () => {
         });
 
         // Create chart
-        const ctx = document.getElementById("script_dpsChart").getContext("2d");
+        const ctx = document.getElementById("script_dpsChart")!.getContext("2d")!;
         chart = new Chart(ctx, {
             type: "bar",
             data: {
@@ -264,13 +263,13 @@ const getStatisticsDom = () => {
             plugins: [ChartDataLabels],
         });
     } else if (document.getElementById("script_dpsChart_div")) {
-        document.getElementById("script_dpsChart_div").style.height = `${chartHeight}px`;
+        document.getElementById("script_dpsChart_div")!.style.height = `${chartHeight}px`;
     }
-    return document.querySelector(".script_dps_panel");
+    return document.querySelector(".script_dps_panel")!;
 };
 
 const updateStatisticsPanel = () => {
-    const totalTime = totalDuration + (endTime - startTime) / 1000;
+    const totalTime = totalDuration + ((endTime ?? 0) - (startTime ?? 0)) / 1000;
     const dps = totalDamage.map((damage) => (totalTime ? Math.round(damage / totalTime) : 0));
     const totalTeamDamage = totalDamage.reduce((acc, damage) => acc + damage, 0);
     const totalTeamDPS = totalTime ? Math.round(totalTeamDamage / totalTime) : 0;
@@ -309,7 +308,7 @@ const updateStatisticsPanel = () => {
         const seconds = Math.floor(totalTime % 60);
         const formattedTime = `${days}d ${hours}h ${minutes}m ${seconds}s`;
 
-        const dpsText = document.getElementById("script_dpsText");
+        const dpsText = document.getElementById("script_dpsText")!;
         const playerRows = players
             .map((player, index) => {
                 const dpsFormatted = dps[index].toLocaleString();
@@ -388,17 +387,26 @@ const updateStatisticsPanel = () => {
 </table>`;
 
         // Update hit chance table
-        const hitChanceTable = document.getElementById("script_hitChanceTable");
+        const hitChanceTable = document.getElementById("script_hitChanceTable")!;
         const hitChanceRows = players
             .map((player) => {
                 const playerName = player.name;
                 const playerHitChances = Object.entries(monsterCounts)
                     .map(([monsterName, count]) => {
-                        const combatStyle = player.combatDetails.combatStats.combatStyleHrids[0].split("/").pop(); // Assuming only one combat style for simplicity
-                        const evasionRating = monsterEvasion[monsterName][`${player.name}-${combatStyle}`];
-                        const accuracy = player.combatDetails[`${combatStyle}AccuracyRating`];
-                        const hitChance = calculateHitChance(accuracy, evasionRating);
-                        return `<td style="color: white;">${hitChance.toFixed(0)}%</td>`;
+                        const styles = player.combatDetails?.combatStats?.combatStyleHrids ?? [];
+                        const styleHitChances = styles
+                            .map((styleHrid: string) => {
+                                const style = styleHrid.split("/").pop();
+                                const evasionRating = monsterEvasion[monsterName]?.[`${player.name}-${style}`];
+                                const accuracy = player.combatDetails?.[`${style}AccuracyRating`];
+                                if (evasionRating == null || accuracy == null) {
+                                    return null;
+                                }
+                                return calculateHitChance(accuracy, evasionRating);
+                            })
+                            .filter((hitChance: number | null) => hitChance != null);
+                        const bestHitChance = styleHitChances.length ? Math.max(...styleHitChances) : null;
+                        return `<td style="color: white;">${bestHitChance == null ? "N/A" : bestHitChance.toFixed(0) + "%"}</td>`;
                     })
                     .join("");
                 return `<tr><td style="color: white;">${playerName}</td>${playerHitChances}</tr>`;

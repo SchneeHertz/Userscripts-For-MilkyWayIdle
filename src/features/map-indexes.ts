@@ -1,5 +1,8 @@
 /* 任务卡片显示战斗地图序号 */
 function handleTaskCard() {
+    if (!initData_actionDetailMap) {
+        return;
+    }
     const taskNameDivs = document.querySelectorAll("div.RandomTask_randomTask__3B9fA div.RandomTask_name__1hl1b");
     for (const div of taskNameDivs) {
         if (div.querySelector("span.script_taskMapIndex")) {
@@ -12,14 +15,14 @@ function handleTaskCard() {
         }
 
         let monsterName = taskStr.replace("Defeat - ", "").replace("击败 - ", "");
-        let actionHrid = null;
+        let actionHrid: string | null = null;
         if (isZHInGameSetting) {
             actionHrid = (
                 getOthersFromZhName(monsterName) ? getOthersFromZhName(monsterName) : getActionEnNameFromZhName(monsterName)
             )?.replaceAll("/monsters/", "/actions/combat/");
         }
 
-        let actionObj = null;
+        let actionObj: any = null;
         for (const action of Object.values(initData_actionDetailMap)) {
             if (action.hrid.includes("/combat/")) {
                 if (action.hrid === actionHrid || action.name.toLowerCase() === monsterName.toLowerCase()) {
@@ -62,10 +65,18 @@ function addIndexToMaps() {
 }
 function initializeMapIndexes() {
     if (settingsMap.taskMapIndex.isTrue) {
-        setInterval(handleTaskCard, 500);
+        setInterval(() => {
+            if (document.querySelector("div.RandomTask_randomTask__3B9fA")) {
+                handleTaskCard();
+            }
+        }, 1000);
     }
     if (settingsMap.mapIndex.isTrue) {
-        setInterval(addIndexToMaps, 500);
+        setInterval(() => {
+            if (document.querySelector("div.CombatPanel_tabsComponentContainer__GsQlg")) {
+                addIndexToMaps();
+            }
+        }, 1000);
     }
 }
 

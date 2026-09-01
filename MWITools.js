@@ -48,8 +48,8 @@
 "use strict";
 (function() {
 	//#region \0virtual:mwitools-userscript.ts
-	const THOUSAND_SEPERATOR = new Intl.NumberFormat().format(1111).replaceAll("1", "").at(0) || "";
-	const DECIMAL_SEPERATOR = new Intl.NumberFormat().format(1.1).replaceAll("1", "").at(0);
+	const THOUSAND_SEPERATOR = new Intl.NumberFormat().format(1111).replaceAll("1", "").charAt(0) || "";
+	const DECIMAL_SEPERATOR = new Intl.NumberFormat().format(1.1).replaceAll("1", "").charAt(0);
 	const isZHInGameSetting = Boolean(localStorage.getItem("i18nextLng")?.toLowerCase()?.startsWith("zh"));
 	let isZH = isZHInGameSetting;
 	let SCRIPT_COLOR_MAIN = "green";
@@ -152,25 +152,31 @@
 		}
 	};
 	readSettings();
-	const waitForSettings = () => {
+	function tryInsertSettingsPanel() {
 		const targetNode = document.querySelector("div.SettingsPanel_profileTab__214Bj");
-		if (targetNode) {
-			if (!targetNode.querySelector("#script_settings")) {
-				targetNode.insertAdjacentHTML("beforeend", `<div id="script_settings"></div>`);
-				const insertElem = targetNode.querySelector("div#script_settings");
-				insertElem.insertAdjacentHTML("beforeend", `<div style="float: left; color: ${SCRIPT_COLOR_MAIN}">${isZH ? "MWITools 设置 （刷新生效）：" : "MWITools Settings (refresh page to apply): "}</div></br>`);
-				for (const setting of Object.values(settingsMap)) insertElem.insertAdjacentHTML("beforeend", `<div style="float: left;"><input type="checkbox" id="${setting.id}" ${setting.isTrue ? "checked" : ""}></input>${setting.desc}</div></br>`);
-				insertElem.insertAdjacentHTML("beforeend", `<div style="float: left;">${isZH ? "代码里搜索“自定义”可以手动修改字体颜色" : `Search "Customization" in code to customize font colors.`}</div></br>`);
-				insertElem.addEventListener("change", saveSettings);
-			}
-		}
-		setTimeout(waitForSettings, 500);
+		if (!targetNode) return false;
+		if (targetNode.querySelector("#script_settings")) return true;
+		targetNode.insertAdjacentHTML("beforeend", `<div id="script_settings"></div>`);
+		const insertElem = targetNode.querySelector("div#script_settings");
+		insertElem.insertAdjacentHTML("beforeend", `<div style="float: left; color: ${SCRIPT_COLOR_MAIN}">${isZH ? "MWITools 设置 （刷新生效）：" : "MWITools Settings (refresh page to apply): "}</div></br>`);
+		for (const setting of Object.values(settingsMap)) insertElem.insertAdjacentHTML("beforeend", `<div style="float: left;"><input type="checkbox" id="${setting.id}" ${setting.isTrue ? "checked" : ""}></input>${setting.desc}</div></br>`);
+		insertElem.insertAdjacentHTML("beforeend", `<div style="float: left;">${isZH ? "代码里搜索“自定义”可以手动修改字体颜色" : `Search "Customization" in code to customize font colors.`}</div></br>`);
+		insertElem.addEventListener("change", saveSettings);
+		return true;
+	}
+	const waitForSettings = () => {
+		if (tryInsertSettingsPanel()) return;
+		const observer = new MutationObserver(() => {
+			if (tryInsertSettingsPanel()) observer.disconnect();
+		});
+		observer.observe(document.body, {
+			childList: true,
+			subtree: true
+		});
 	};
 	function saveSettings() {
-		for (const checkbox of document.querySelectorAll("div#script_settings input")) {
-			settingsMap[checkbox.id].isTrue = checkbox.checked;
-			localStorage.setItem("script_settingsMap", JSON.stringify(settingsMap));
-		}
+		for (const checkbox of document.querySelectorAll("div#script_settings input")) settingsMap[checkbox.id].isTrue = checkbox.checked;
+		localStorage.setItem("script_settingsMap", JSON.stringify(settingsMap));
 	}
 	function readSettings() {
 		const ls = localStorage.getItem("script_settingsMap");
@@ -208,6 +214,68 @@
 			return num >= item.value;
 		});
 		return item ? (num / item.value).toFixed(digits).replace(rx, "$1") + item.symbol : "0";
+	}
+	function formatDuration(sec) {
+		if (sec >= 86400) return Number(sec / 86400).toFixed(1) + (isZH ? " 天" : " days");
+		const d = new Date(Math.round(sec * 1e3));
+		function pad(i) {
+			return ("0" + i).slice(-2);
+		}
+		return d.getUTCHours() + "h " + pad(d.getUTCMinutes()) + "m " + pad(d.getUTCSeconds()) + "s";
+	}
+	const COMBAT_SKILL_HRIDS = [
+		"stamina",
+		"intelligence",
+		"attack",
+		"melee",
+		"defense",
+		"ranged",
+		"magic"
+	];
+	const COMBAT_SKILL_EN_NAMES = [
+		"Stamina",
+		"Intelligence",
+		"Attack",
+		"Melee",
+		"Defense",
+		"Ranged",
+		"Magic"
+	];
+	const COMBAT_SKILL_ZH_NAMES = [
+		"耐力",
+		"智力",
+		"攻击",
+		"近战",
+		"防御",
+		"远程",
+		"魔法"
+	];
+	function getCombatSkillInfo(skills) {
+		const result = {};
+		for (const skill of skills ?? []) {
+			const key = /\/skills\/([\w]+)$/.exec(skill?.skillHrid ?? "")?.[1];
+			if (key && COMBAT_SKILL_HRIDS.includes(key)) result[key] = {
+				level: skill.level,
+				experience: skill.experience,
+				skillHrid: skill.skillHrid
+			};
+		}
+		return result;
+	}
+	function buildCombatSkillLevels(skills) {
+		const skillInfo = getCombatSkillInfo(skills);
+		const result = {};
+		COMBAT_SKILL_HRIDS.forEach((key, index) => {
+			const info = skillInfo[key];
+			if (!info) return;
+			result[key] = {
+				skillName: COMBAT_SKILL_EN_NAMES[index],
+				skillZhName: COMBAT_SKILL_ZH_NAMES[index],
+				currentLevel: info.level,
+				currentExp: info.experience
+			};
+		});
+		return result;
 	}
 	const ZHItemNames = {
 		"/items/coin": "金币",
@@ -2098,7 +2166,7 @@
 			console.log("Can not find EN name for action " + zhName);
 			return "";
 		}
-		const enName = initData_actionDetailMap[actionHrid]?.name;
+		const enName = initData_actionDetailMap?.[actionHrid]?.name;
 		if (!enName) {
 			console.log("Can not find EN name for actionHrid " + actionHrid);
 			return "";
@@ -2120,7 +2188,6 @@
 	let initData_itemDetailMap = null;
 	let initData_actionCategoryDetailMap = null;
 	let currentActionsHridList = [];
-	let currentEquipmentMap = {};
 	const messageHandlers = /* @__PURE__ */ new Map();
 	function registerMessageHandler(type, handler) {
 		const handlers = messageHandlers.get(type) || [];
@@ -2134,13 +2201,14 @@
 	function restoreInitialClientData() {
 		if (!localStorage.getItem("initClientData")) return;
 		const obj = localStorageUtil.getInitClientData();
-		console.log(obj);
-		GM_setValue("init_client_data", JSON.stringify(obj));
+		const json = JSON.stringify(obj);
+		if (GM_getValue("init_client_data", null) !== json) GM_setValue("init_client_data", json);
 		applyClientData(obj);
 	}
 	function hookWebSocketMessages() {
 		const dataProperty = Object.getOwnPropertyDescriptor(MessageEvent.prototype, "data");
-		const originalGetter = dataProperty.get;
+		const originalGetter = dataProperty?.get;
+		if (!dataProperty || !originalGetter) return;
 		dataProperty.get = function hookedGet() {
 			const socket = this.currentTarget;
 			if (!(socket instanceof WebSocket) || !isGameWebSocket(socket.url)) return originalGetter.call(this);
@@ -2159,7 +2227,13 @@
 		].some((host) => url.includes(host));
 	}
 	function handleMessage(message) {
-		const obj = JSON.parse(message);
+		let obj = null;
+		try {
+			obj = JSON.parse(message);
+		} catch (error) {
+			console.warn("MWITools: unable to parse WS message", error);
+			return message;
+		}
 		const handlers = messageHandlers.get(obj?.type) || [];
 		for (const handler of handlers) handler(obj, message);
 		return message;
@@ -2173,20 +2247,14 @@
 		for (const [key, value] of Object.entries(initData_itemDetailMap)) itemEnNameToHridMap[value.name] = key;
 	}
 	function handleInitCharacterData(obj, message) {
-		console.log(obj);
 		GM_setValue("init_character_data", message);
 		initData_characterSkills = obj.characterSkills;
 		initData_characterItems = obj.characterItems;
 		initData_characterHouseRoomMap = obj.characterHouseRoomMap;
 		initData_actionTypeDrinkSlotsMap = obj.actionTypeDrinkSlotsMap;
-		obj.characterAbilities;
-		obj.myMarketListings;
-		obj.combatUnit.combatAbilities;
 		currentActionsHridList = [...obj.characterActions];
-		for (const item of obj.characterItems) if (item.itemLocationHrid !== "/item_locations/inventory") currentEquipmentMap[item.itemLocationHrid] = item;
 	}
 	function handleInitClientData(obj, message) {
-		console.log(obj);
 		GM_setValue("init_client_data", message);
 		applyClientData(obj);
 	}
@@ -2199,18 +2267,10 @@
 		if (action.isDone !== false) return;
 		for (const queuedAction of currentActionsHridList) if (queuedAction.id === action.id) queuedAction.currentCount = action.currentCount;
 	}
-	function handleItemsUpdated(obj) {
-		if (!obj.endCharacterItems) return;
-		for (const item of obj.endCharacterItems) {
-			if (item.itemLocationHrid === "/item_locations/inventory") continue;
-			currentEquipmentMap[item.itemLocationHrid] = item.count === 0 ? null : item;
-		}
-	}
 	registerMessageHandler("init_character_data", handleInitCharacterData);
 	registerMessageHandler("init_client_data", handleInitClientData);
 	registerMessageHandler("actions_updated", handleActionsUpdated);
 	registerMessageHandler("action_completed", handleActionCompleted);
-	registerMessageHandler("items_updated", handleItemsUpdated);
 	function getOriTextFromElement(elem) {
 		if (!elem) {
 			console.error("getTextFromElement null elem");
@@ -2280,42 +2340,47 @@
 		return null;
 	}
 	function getToolsSpeedBuffByActionHrid(actionHrid) {
+		const actionDetail = initData_actionDetailMap?.[actionHrid];
+		if (!actionDetail) return 0;
 		let totalBuff = 0;
-		for (const item of initData_characterItems) if (item.itemLocationHrid.includes("_tool")) {
-			const buffName = actionHridToToolsSpeedBuffNamesMap[initData_actionDetailMap[actionHrid].type];
-			const enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] / 100;
-			const buff = initData_itemDetailMap[item.itemHrid].equipmentDetail.noncombatStats[buffName] || 0;
+		for (const item of initData_characterItems ?? []) if (item.itemLocationHrid.includes("_tool")) {
+			const buffName = actionHridToToolsSpeedBuffNamesMap[actionDetail.type];
+			if (!buffName) continue;
+			const enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] ?? 0) / 100;
+			const buff = initData_itemDetailMap?.[item.itemHrid]?.equipmentDetail?.noncombatStats?.[buffName] || 0;
 			totalBuff += buff * enhanceBonus;
 		}
 		return Number(Number(totalBuff * 100).toFixed(1));
 	}
 	function getItemEffiBuffByActionHrid(actionHrid) {
+		const actionDetail = initData_actionDetailMap?.[actionHrid];
+		if (!actionDetail?.type) return 0;
 		let buff = 0;
-		const propertyName = initData_actionDetailMap[actionHrid].type.replace("/action_types/", "") + "Efficiency";
-		for (const item of initData_characterItems) {
+		const propertyName = actionDetail.type.replace("/action_types/", "") + "Efficiency";
+		for (const item of initData_characterItems ?? []) {
 			if (item.itemLocationHrid === "/item_locations/inventory") continue;
-			const itemDetail = initData_itemDetailMap[item.itemHrid];
-			const specificStat = itemDetail?.equipmentDetail?.noncombatStats[propertyName];
+			const noncombatStats = (initData_itemDetailMap?.[item.itemHrid])?.equipmentDetail?.noncombatStats;
+			const specificStat = noncombatStats?.[propertyName];
 			if (specificStat && specificStat > 0) {
 				let enhanceBonus = 1;
-				if (item.itemLocationHrid.includes("earrings") || item.itemLocationHrid.includes("ring") || item.itemLocationHrid.includes("neck")) enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] * 5 / 100;
-				else enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] / 100;
+				if (item.itemLocationHrid.includes("earrings") || item.itemLocationHrid.includes("ring") || item.itemLocationHrid.includes("neck")) enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] ?? 0) * 5 / 100;
+				else enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] ?? 0) / 100;
 				buff += specificStat * enhanceBonus;
 			}
-			const skillingStat = itemDetail?.equipmentDetail?.noncombatStats["skillingEfficiency"];
+			const skillingStat = noncombatStats?.["skillingEfficiency"];
 			if (skillingStat && skillingStat > 0) {
 				let enhanceBonus = 1;
-				if (item.itemLocationHrid.includes("earrings") || item.itemLocationHrid.includes("ring") || item.itemLocationHrid.includes("neck")) enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] * 5 / 100;
-				else enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] / 100;
+				if (item.itemLocationHrid.includes("earrings") || item.itemLocationHrid.includes("ring") || item.itemLocationHrid.includes("neck")) enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] ?? 0) * 5 / 100;
+				else enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] ?? 0) / 100;
 				buff += skillingStat * enhanceBonus;
 			}
 		}
 		return Number(Number(buff * 100).toFixed(1));
 	}
 	function getHousesEffBuffByActionHrid(actionHrid) {
-		const houseName = actionHridToHouseNamesMap[initData_actionDetailMap[actionHrid].type];
+		const houseName = actionHridToHouseNamesMap[initData_actionDetailMap?.[actionHrid]?.type];
 		if (!houseName) return 0;
-		const house = initData_characterHouseRoomMap[houseName];
+		const house = initData_characterHouseRoomMap?.[houseName];
 		if (!house) return 0;
 		return house.level * 1.5;
 	}
@@ -2327,11 +2392,11 @@
 			extraExp: 0,
 			upgradedProduct: 0
 		};
-		const actionTypeId = initData_actionDetailMap[actionHrid].type;
-		const teaList = initData_actionTypeDrinkSlotsMap[actionTypeId];
+		const actionTypeId = initData_actionDetailMap?.[actionHrid]?.type;
+		const teaList = initData_actionTypeDrinkSlotsMap?.[actionTypeId] ?? [];
 		for (const tea of teaList) {
 			if (!tea || !tea.itemHrid) continue;
-			for (const buff of initData_itemDetailMap[tea.itemHrid].consumableDetail.buffs) if (buff.typeHrid === "/buff_types/artisan") teaBuffs.lessResource += buff.flatBoost * 100;
+			for (const buff of initData_itemDetailMap?.[tea.itemHrid]?.consumableDetail?.buffs ?? []) if (buff.typeHrid === "/buff_types/artisan") teaBuffs.lessResource += buff.flatBoost * 100;
 			else if (buff.typeHrid === "/buff_types/action_level") teaBuffs.efficiency -= buff.flatBoost;
 			else if (buff.typeHrid === "/buff_types/gathering") teaBuffs.quantity += buff.flatBoost * 100;
 			else if (buff.typeHrid === "/buff_types/gourmet") teaBuffs.quantity += buff.flatBoost * 100;
@@ -2345,43 +2410,54 @@
 	const showTotalActionTime = () => {
 		const targetNode = document.querySelector("div.Header_actionName__31-L2");
 		if (targetNode) {
-			console.log("start observe action progress bar");
 			calculateTotalTime();
-			new MutationObserver((mutationsList) => mutationsList.forEach((mutation) => {
+			const observer = new MutationObserver(() => {
+				if (!targetNode.isConnected) {
+					observer.disconnect();
+					setTimeout(showTotalActionTime, 200);
+					return;
+				}
 				calculateTotalTime();
-			})).observe(targetNode, {
+			});
+			observer.observe(targetNode, {
 				characterData: true,
 				subtree: true,
 				childList: true
 			});
 		} else setTimeout(showTotalActionTime, 200);
 	};
+	let lastTotalTimeStr = "";
 	function calculateTotalTime() {
 		const targetNode = document.querySelector("div.Header_actionName__31-L2 > div.Header_displayName__1hN09");
-		if (targetNode.textContent.includes("[")) return;
+		if (!targetNode) return;
+		let span = targetNode.querySelector("span.script_actionTime");
+		if (!span) {
+			span = document.createElement("span");
+			span.className = "script_actionTime";
+			span.style.color = SCRIPT_COLOR_MAIN;
+			targetNode.append(span);
+			lastTotalTimeStr = "";
+		}
 		let totalTimeStr = "Error";
 		const match = targetNode.innerText.match(/\((\d+)\)/);
-		if (match) {
+		const progressBar = document.querySelector(".ProgressBar_text__102Yn");
+		const progressBarMatch = progressBar && getOriTextFromElement(progressBar).match(/[\d\.]+/);
+		const currentAction = currentActionsHridList[0];
+		if (match && progressBarMatch && currentAction?.actionHrid) {
 			const numOfTimes = +match[1];
-			const timePerActionSec = +getOriTextFromElement(document.querySelector(".ProgressBar_text__102Yn")).match(/[\d\.]+/)[0];
-			const actionHrid = currentActionsHridList[0].actionHrid;
+			const timePerActionSec = +progressBarMatch[0];
+			const actionHrid = currentAction.actionHrid;
 			let effBuff = 1 + getTotalEffiPercentage(actionHrid) / 100;
 			if (actionHrid.includes("enhanc")) effBuff = 1;
 			const totalTimeSeconds = Math.round(numOfTimes / effBuff) * timePerActionSec;
-			totalTimeStr = " [" + timeReadable(totalTimeSeconds) + "]";
+			totalTimeStr = " [" + formatDuration(totalTimeSeconds) + "]";
 			const currentTime = /* @__PURE__ */ new Date();
 			currentTime.setSeconds(currentTime.getSeconds() + totalTimeSeconds);
 			totalTimeStr += ` ${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(currentTime.getSeconds()).padStart(2, "0")}`;
-		} else totalTimeStr = " [∞]";
-		targetNode.textContent += totalTimeStr;
-	}
-	function timeReadable(sec) {
-		if (sec >= 86400) return Number(sec / 86400).toFixed(1) + (isZH ? " 天" : " days");
-		const d = new Date(Math.round(sec * 1e3));
-		function pad(i) {
-			return ("0" + i).slice(-2);
-		}
-		return d.getUTCHours() + "h " + pad(d.getUTCMinutes()) + "m " + pad(d.getUTCSeconds()) + "s";
+		} else if (!match) totalTimeStr = " [∞]";
+		if (totalTimeStr === lastTotalTimeStr) return;
+		lastTotalTimeStr = totalTimeStr;
+		span.textContent = totalTimeStr;
 	}
 	function installActionTimeStyles() {
 		GM_addStyle(`div.Header_actionName__31-L2 {
@@ -2394,21 +2470,22 @@
       }`);
 	}
 	function initializeTotalActionTime() {
-		if (settingsMap.totalActionTime.isTrue) showTotalActionTime();
+		if (settingsMap.totalActionTime.isTrue) {
+			lastTotalTimeStr = "";
+			showTotalActionTime();
+		}
 	}
 	registerMessageHandler("init_character_data", initializeTotalActionTime);
 	const waitForActionPanelParent = () => {
 		const targetNode = document.querySelector("div.GamePage_mainPanel__2njyb");
-		if (targetNode) {
-			console.log("start observe action panel");
-			new MutationObserver(async function(mutations) {
-				for (const mutation of mutations) for (const added of mutation.addedNodes) if (added?.classList?.contains("Modal_modalContainer__3B80m") && added.querySelector("div.SkillActionDetail_regularComponent__3oCgr")) handleActionPanel(added.querySelector("div.SkillActionDetail_regularComponent__3oCgr"));
-			}).observe(targetNode, {
-				attributes: false,
-				childList: true,
-				subtree: true
-			});
-		} else setTimeout(waitForActionPanelParent, 200);
+		if (targetNode) new MutationObserver(async function(mutations) {
+			for (const mutation of mutations) for (const added of mutation.addedNodes) if (added?.classList?.contains("Modal_modalContainer__3B80m") && added.querySelector("div.SkillActionDetail_regularComponent__3oCgr")) handleActionPanel(added.querySelector("div.SkillActionDetail_regularComponent__3oCgr"));
+		}).observe(targetNode, {
+			attributes: false,
+			childList: true,
+			subtree: true
+		});
+		else setTimeout(waitForActionPanelParent, 200);
 	};
 	async function handleActionPanel(panel) {
 		if (!settingsMap.actionPanel_totalTime.isTrue) return;
@@ -2419,7 +2496,13 @@
 		const elems = panel.querySelectorAll("div.SkillActionDetail_value__dQjYH");
 		const duration = Number(getOriTextFromElement(elems[elems.length - 2]).replaceAll(THOUSAND_SEPERATOR, "").replaceAll(DECIMAL_SEPERATOR, ".").replace("s", ""));
 		const inputElem = panel.querySelector("div.SkillActionDetail_maxActionCountInput__1C0Pw input");
-		const actionHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].hrid;
+		const actionNameHrid = getActionHridFromItemName(actionName);
+		const actionDetail = actionNameHrid ? initData_actionDetailMap?.[actionNameHrid] : null;
+		if (!actionDetail) {
+			console.error("handleActionPanel unable to find action detail for " + actionName);
+			return;
+		}
+		const actionHrid = actionDetail.hrid;
 		const effBuff = 1 + getTotalEffiPercentage(actionHrid, false) / 100;
 		let hTMLStr = `<div id="showTotalTime" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${getTotalTimeStr(inputElem.value, duration, effBuff)}</div>`;
 		inputElem.parentNode.parentNode.parentNode.insertAdjacentHTML("afterend", hTMLStr);
@@ -2489,22 +2572,23 @@
 			quickInputCountButtonsDiv.append(document.createTextNode(isZH ? " 次" : " times"));
 			appendAfterElem = quickInputCountButtonsDiv;
 		}
-		const skillHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].experienceGain.skillHrid;
-		let currentExp = null;
-		let currentLevel = null;
-		for (const skill of initData_characterSkills) if (skill.skillHrid === skillHrid) {
+		const skillHrid = actionDetail.experienceGain.skillHrid;
+		let currentExp = 0;
+		let currentLevel = 0;
+		for (const skill of initData_characterSkills ?? []) if (skill.skillHrid === skillHrid) {
 			currentExp = skill.experience;
 			currentLevel = skill.level;
 			break;
 		}
 		if (currentExp && currentLevel) {
 			const calculateNeedToLevel = (currentLevel, targetLevel, effBuff, duration, exp) => {
+				const levelExperienceTable = initData_levelExperienceTable ?? [];
 				let needTotalTimeSec = 0;
 				let needTotalNumOfActions = 0;
 				for (let level = currentLevel; level < targetLevel; level++) {
-					let needExpToNextLevel = null;
-					if (level === currentLevel) needExpToNextLevel = initData_levelExperienceTable[level + 1] - currentExp;
-					else needExpToNextLevel = initData_levelExperienceTable[level + 1] - initData_levelExperienceTable[level];
+					let needExpToNextLevel = 0;
+					if (level === currentLevel) needExpToNextLevel = levelExperienceTable[level + 1] - currentExp;
+					else needExpToNextLevel = levelExperienceTable[level + 1] - levelExperienceTable[level];
 					const extraLevelEffBuff = (level - currentLevel) * .01;
 					const needNumOfActionsToNextLevel = Math.round(needExpToNextLevel / exp);
 					needTotalNumOfActions += needNumOfActionsToNextLevel;
@@ -2516,7 +2600,7 @@
 				};
 			};
 			const need = calculateNeedToLevel(currentLevel, currentLevel + 1, effBuff, duration, exp);
-			hTMLStr = `<div id="tillLevel" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${isZH ? "到 " : "To reach level "}<input id="tillLevelInput" type="number" value="${currentLevel + 1}" min="${currentLevel + 1}" max="200">${isZH ? " 级还需做 " : ", need to do "}<span id="tillLevelNumber">${need.numOfActions}${isZH ? " 次" : " times "}[${timeReadable(need.timeSec)}]${isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"}</span></div>`;
+			hTMLStr = `<div id="tillLevel" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${isZH ? "到 " : "To reach level "}<input id="tillLevelInput" type="number" value="${currentLevel + 1}" min="${currentLevel + 1}" max="200">${isZH ? " 级还需做 " : ", need to do "}<span id="tillLevelNumber">${need.numOfActions}${isZH ? " 次" : " times "}[${formatDuration(need.timeSec)}]${isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"}</span></div>`;
 			appendAfterElem.insertAdjacentHTML("afterend", hTMLStr);
 			const tillLevelInput = panel.querySelector("input#tillLevelInput");
 			const tillLevelNumber = panel.querySelector("span#tillLevelNumber");
@@ -2524,14 +2608,14 @@
 				const targetLevel = Number(tillLevelInput.value);
 				if (targetLevel > currentLevel && targetLevel <= 200) {
 					const need = calculateNeedToLevel(currentLevel, targetLevel, effBuff, duration, exp);
-					tillLevelNumber.textContent = `${need.numOfActions}${isZH ? " 次" : " times "}[${timeReadable(need.timeSec)}]${isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"}`;
+					tillLevelNumber.textContent = `${need.numOfActions}${isZH ? " 次" : " times "}[${formatDuration(need.timeSec)}]${isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"}`;
 				} else tillLevelNumber.textContent = "Error";
 			};
 			tillLevelInput.addEventListener("keyup", function(evt) {
 				const targetLevel = Number(tillLevelInput.value);
 				if (targetLevel > currentLevel && targetLevel <= 200) {
 					const need = calculateNeedToLevel(currentLevel, targetLevel, effBuff, duration, exp);
-					tillLevelNumber.textContent = `${need.numOfActions}${isZH ? " 次" : " times "}[${timeReadable(need.timeSec)}]${isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"}`;
+					tillLevelNumber.textContent = `${need.numOfActions}${isZH ? " 次" : " times "}[${formatDuration(need.timeSec)}]${isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"}`;
 				} else tillLevelNumber.textContent = "Error";
 			});
 		}
@@ -2539,9 +2623,11 @@
 	}
 	function getTotalEffiPercentage(actionHrid, debug = false) {
 		if (debug) console.log("----- getTotalEffiPercentage " + actionHrid);
-		const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
+		const actionDetail = initData_actionDetailMap?.[actionHrid];
+		if (!actionDetail) return 0;
+		const requiredLevel = actionDetail.levelRequirement.level;
 		let currentLevel = requiredLevel;
-		for (const skill of initData_characterSkills) if (skill.skillHrid === initData_actionDetailMap[actionHrid].levelRequirement.skillHrid) {
+		for (const skill of initData_characterSkills ?? []) if (skill.skillHrid === actionDetail.levelRequirement.skillHrid) {
 			currentLevel = skill.level;
 			break;
 		}
@@ -2560,7 +2646,7 @@
 	function getTotalTimeStr(input, duration, effBuff) {
 		if (input === "∞") return "[∞]";
 		else if (isNaN(input)) return "Error";
-		return "[" + timeReadable(Math.round(input / effBuff) * duration) + "]";
+		return "[" + formatDuration(Math.round(input / effBuff) * duration) + "]";
 	}
 	function reactInputTriggerHack(inputElem, value) {
 		let lastValue = inputElem.value;
@@ -2572,31 +2658,32 @@
 		inputElem.dispatchEvent(event);
 	}
 	registerMessageHandler("init_character_data", waitForActionPanelParent);
-	const waitForProgressBar = () => {
+	function updateProgressBars() {
 		const elements = document.querySelectorAll(".NavigationBar_currentExperience__3GDeX");
-		if (elements.length) {
-			removeInsertedDivs();
-			elements.forEach((element) => {
-				let text = element.style.width;
-				text = Number(text.replace("%", "")).toFixed(2) + "%";
-				const span = document.createElement("span");
-				span.textContent = text;
+		for (const element of elements) {
+			const pctText = Number((element.style.width || "").replace("%", "") || "0").toFixed(2) + "%";
+			const levelLabel = element.parentNode?.parentNode?.querySelector("span.NavigationBar_level__3C7eR");
+			if (levelLabel) levelLabel.style.width = "auto";
+			const insertParent = element.parentNode?.parentNode?.children[0] ?? null;
+			if (!insertParent) continue;
+			let span = insertParent.querySelector("span.insertedSpan");
+			if (!span) {
+				span = document.createElement("span");
+				span.textContent = pctText;
 				span.classList.add("insertedSpan");
 				span.style.fontSize = "0.875rem";
 				span.style.color = SCRIPT_COLOR_MAIN;
-				element.parentNode.parentNode.querySelector("span.NavigationBar_level__3C7eR").style.width = "auto";
-				const insertParent = element.parentNode.parentNode.children[0];
-				insertParent.insertBefore(span, insertParent.children[1]);
-			});
-		} else setTimeout(waitForProgressBar, 200);
-	};
-	const removeInsertedDivs = () => document.querySelectorAll("span.insertedSpan").forEach((div) => div.parentNode.removeChild(div));
+			} else if (span.textContent === pctText) continue;
+			else {
+				span.textContent = pctText;
+				continue;
+			}
+			insertParent.insertBefore(span, insertParent.children[1]);
+		}
+	}
 	function initializeExperiencePercentage() {
 		if (!settingsMap.expPercentage.isTrue) return;
-		window.setInterval(() => {
-			removeInsertedDivs();
-			waitForProgressBar();
-		}, 1e3);
+		setInterval(updateProgressBars, 1e3);
 	}
 	function handleBattleSummary(message) {
 		let totalRawCoins = 0;
@@ -2605,127 +2692,143 @@
 		}
 		let totalSkillsExp = 0;
 		if (message.unit.totalSkillExperienceMap) for (const exp of Object.values(message.unit.totalSkillExperienceMap)) totalSkillsExp += exp;
+		const skillExpRows = [
+			{
+				skillHrid: "/skills/magic",
+				zhName: "魔法",
+				enName: "Magic"
+			},
+			{
+				skillHrid: "/skills/ranged",
+				zhName: "远程",
+				enName: "Ranged"
+			},
+			{
+				skillHrid: "/skills/defense",
+				zhName: "防御",
+				enName: "Defense"
+			},
+			{
+				skillHrid: "/skills/melee",
+				zhName: "近战",
+				enName: "Melee"
+			},
+			{
+				skillHrid: "/skills/attack",
+				zhName: "攻击",
+				enName: "Attack"
+			},
+			{
+				skillHrid: "/skills/intelligence",
+				zhName: "智力",
+				enName: "Intelligence"
+			},
+			{
+				skillHrid: "/skills/stamina",
+				zhName: "耐力",
+				enName: "Stamina"
+			}
+		];
 		let tryTimes = 0;
 		findElem();
 		function findElem() {
 			tryTimes++;
-			let elem = document.querySelector(".BattlePanel_gainedExp__3SaCa")?.parentElement;
-			if (elem) {
-				let battleDurationSec = null;
-				const combatInfoElement = document.querySelector(".BattlePanel_combatInfo__sHGCe");
-				if (combatInfoElement) {
-					let matches = combatInfoElement.innerHTML.match(/(战斗时间|战斗时长|Combat Duration): (?:(\d+)d\s*)?(?:(\d+)h\s*)?(?:(\d+)m\s*)?(?:(\d+)s).*?(交战|战斗|Battles): (\d+).*?(战败|死亡次数|Deaths): (\d+)/);
-					if (matches) {
-						let days = parseInt(matches[2], 10) || 0;
-						let hours = parseInt(matches[3], 10) || 0;
-						let minutes = parseInt(matches[4], 10) || 0;
-						let seconds = parseInt(matches[5], 10) || 0;
-						let battles = parseInt(matches[7], 10) - 1;
-						battleDurationSec = days * 86400 + hours * 3600 + minutes * 60 + seconds;
-						let efficiencyPerHour = (battles / battleDurationSec * 3600).toFixed(1);
-						elem.insertAdjacentHTML("beforeend", `<div id="script_battleNumbers" style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "每小时战斗: " : "Encounters/hour: "}${efficiencyPerHour}${isZH ? " 次" : ""}</div>`);
-					}
+			const elem = document.querySelector(".BattlePanel_gainedExp__3SaCa")?.parentElement;
+			if (!elem) {
+				if (tryTimes <= 10) setTimeout(findElem, 200);
+				else console.error("handleBattleSummary: Elem not found after 10 tries.");
+				return;
+			}
+			let battleDurationSec = null;
+			const combatInfoElement = document.querySelector(".BattlePanel_combatInfo__sHGCe");
+			if (combatInfoElement) {
+				const matches = combatInfoElement.innerHTML.match(/(战斗时间|战斗时长|Combat Duration): (?:(\d+)d\s*)?(?:(\d+)h\s*)?(?:(\d+)m\s*)?(?:(\d+)s).*?(交战|战斗|Battles): (\d+).*?(战败|死亡次数|Deaths): (\d+)/);
+				if (matches) {
+					let days = parseInt(matches[2], 10) || 0;
+					let hours = parseInt(matches[3], 10) || 0;
+					let minutes = parseInt(matches[4], 10) || 0;
+					let seconds = parseInt(matches[5], 10) || 0;
+					let battles = parseInt(matches[7], 10) - 1;
+					battleDurationSec = days * 86400 + hours * 3600 + minutes * 60 + seconds;
+					appendSummaryRow(elem, "script_battleNumbers", `${isZH ? "每小时战斗: " : "Encounters/hour: "}${(battles / (battleDurationSec ?? 1) * 3600).toFixed(1)}${isZH ? " 次" : ""}`);
 				}
-				if (battleDurationSec) document.querySelector("div#script_battleNumbers").insertAdjacentHTML("afterend", `<div id="script_avgRawCoinHour" style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "每小时金币收获: " : "Raw coins/hour: "}${numberFormatter(totalRawCoins / (battleDurationSec / 60 / 60))}</div>`);
-				document.querySelector("div#script_battleNumbers").insertAdjacentHTML("afterend", `<div id="script_totalSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "总经验: " : "Total exp: "}${numberFormatter(totalSkillsExp)}</div>`);
-				if (battleDurationSec) {
-					document.querySelector("div#script_totalSkillsExp").insertAdjacentHTML("afterend", `<div id="script_averageSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "每小时总经验: " : "Total exp/hour: "}${numberFormatter(totalSkillsExp / (battleDurationSec / 60 / 60))}</div>`);
-					[
-						{
-							skillHrid: "/skills/magic",
-							zhName: "魔法",
-							enName: "Magic"
-						},
-						{
-							skillHrid: "/skills/ranged",
-							zhName: "远程",
-							enName: "Ranged"
-						},
-						{
-							skillHrid: "/skills/defense",
-							zhName: "防御",
-							enName: "Defense"
-						},
-						{
-							skillHrid: "/skills/melee",
-							zhName: "近战",
-							enName: "Melee"
-						},
-						{
-							skillHrid: "/skills/attack",
-							zhName: "攻击",
-							enName: "Attack"
-						},
-						{
-							skillHrid: "/skills/intelligence",
-							zhName: "智力",
-							enName: "Intelligence"
-						},
-						{
-							skillHrid: "/skills/stamina",
-							zhName: "耐力",
-							enName: "Stamina"
-						}
-					].forEach((skill) => {
-						const expGained = message.unit.totalSkillExperienceMap[skill.skillHrid];
-						if (expGained) document.querySelector("div#script_totalSkillsExp").insertAdjacentHTML("afterend", `<div style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "每小时" : ""}${isZH ? skill.zhName : skill.enName}${isZH ? "经验: " : " exp/hour: "}${numberFormatter(expGained / (battleDurationSec / 60 / 60))}</div>`);
-					});
-				} else console.error("handleBattleSummary unable to display average exp due to null battleDurationSec");
-			} else if (tryTimes <= 10) setTimeout(findElem, 200);
-			else console.error("handleBattleSummary: Elem not found after 10 tries.");
+			}
+			if (battleDurationSec) appendSummaryRow(elem, "script_avgRawCoinHour", `${isZH ? "每小时金币收获: " : "Raw coins/hour: "}${numberFormatter(totalRawCoins / (battleDurationSec / 60 / 60))}`);
+			appendSummaryRow(elem, "script_totalSkillsExp", `${isZH ? "总经验: " : "Total exp: "}${numberFormatter(totalSkillsExp)}`);
+			if (battleDurationSec) {
+				appendSummaryRow(elem, "script_averageSkillsExp", `${isZH ? "每小时总经验: " : "Total exp/hour: "}${numberFormatter(totalSkillsExp / (battleDurationSec / 60 / 60))}`);
+				for (const skill of skillExpRows) {
+					const expGained = message.unit.totalSkillExperienceMap?.[skill.skillHrid];
+					if (expGained) appendSummaryRow(elem, `script_skillExp_${skill.skillHrid.split("/").pop()}`, `${isZH ? "每小时" : ""}${isZH ? skill.zhName : skill.enName}${isZH ? "经验: " : " exp/hour: "}${numberFormatter(expGained / (battleDurationSec / 60 / 60))}`);
+				}
+			} else console.error("handleBattleSummary unable to display average exp due to null battleDurationSec");
 		}
+	}
+	function appendSummaryRow(parent, id, text) {
+		let elem = parent.querySelector(`div#${id}`);
+		if (!elem) {
+			elem = document.createElement("div");
+			elem.id = id;
+			elem.style.color = SCRIPT_COLOR_MAIN;
+			parent.append(elem);
+		}
+		elem.textContent = text;
 	}
 	function handleBattleUnitFetched(message) {
 		if (settingsMap.battlePanel.isTrue) handleBattleSummary(message);
 	}
 	registerMessageHandler("battle_unit_fetched", handleBattleUnitFetched);
+	const keyInfoMap = /* @__PURE__ */ new Map();
+	keyInfoMap.set("/items/blue_key_fragment", isZH ? "图3" : "Z3");
+	keyInfoMap.set("/items/green_key_fragment", isZH ? "图4" : "Z4");
+	keyInfoMap.set("/items/purple_key_fragment", isZH ? "图5" : "Z5");
+	keyInfoMap.set("/items/white_key_fragment", isZH ? "图6" : "Z6");
+	keyInfoMap.set("/items/orange_key_fragment", isZH ? "图7" : "Z7");
+	keyInfoMap.set("/items/brown_key_fragment", isZH ? "图8" : "Z8");
+	keyInfoMap.set("/items/stone_key_fragment", isZH ? "图9" : "Z9");
+	keyInfoMap.set("/items/dark_key_fragment", isZH ? "图10" : "Z10");
+	keyInfoMap.set("/items/burning_key_fragment", isZH ? "图11" : "Z11");
+	keyInfoMap.set("/items/chimerical_entry_key", isZH ? "牢1" : "D1");
+	keyInfoMap.set("/items/sinister_entry_key", isZH ? "牢2" : "D2");
+	keyInfoMap.set("/items/enchanted_entry_key", isZH ? "牢3" : "D3");
+	keyInfoMap.set("/items/pirate_entry_key", isZH ? "牢4" : "D4");
+	keyInfoMap.set("/items/chimerical_chest_key", "3.4.5.6");
+	keyInfoMap.set("/items/sinister_chest_key", "5.7.8.10");
+	keyInfoMap.set("/items/enchanted_chest_key", "7.8.9.11");
+	keyInfoMap.set("/items/pirate_chest_key", "6.9.10.11");
 	function addItemLevels() {
 		const iconDivs = document.querySelectorAll("div.Item_itemContainer__x7kH1 div.Item_item__2De2O.Item_clickable__3viV6");
 		for (const div of iconDivs) {
 			if (div.querySelector("div.Item_name__2C42x")) continue;
-			const itemHrid = "/items/" + div.querySelector("use").getAttribute("href").split("#")[1];
-			const itemLevel = initData_itemDetailMap[itemHrid]?.itemLevel;
-			const itemAbilityLevel = initData_itemDetailMap[itemHrid]?.abilityBookDetail?.levelRequirements?.[0]?.level;
-			if (initData_itemDetailMap[itemHrid]?.equipmentDetail && itemLevel && itemLevel > 0) {
-				if (!div.querySelector("div.script_itemLevel")) {
-					div.style.position = "relative";
-					div.insertAdjacentHTML("beforeend", `<div class="script_itemLevel" style="z-index: 1; position: absolute; top: 2px; right: 2px; text-align: right; color: ${SCRIPT_COLOR_MAIN};">${itemLevel}</div>`);
-				}
+			if (div.querySelector("div.script_itemLevel, div.script_key")) continue;
+			const hrefName = (div.querySelector("use")?.getAttribute("href"))?.split("#")[1];
+			if (!hrefName) continue;
+			const itemHrid = "/items/" + hrefName;
+			const itemDetail = initData_itemDetailMap?.[itemHrid];
+			const itemLevel = itemDetail?.itemLevel;
+			const itemAbilityLevel = itemDetail?.abilityBookDetail?.levelRequirements?.[0]?.level;
+			if (itemDetail?.equipmentDetail && itemLevel && itemLevel > 0) {
+				div.style.position = "relative";
+				div.insertAdjacentHTML("beforeend", `<div class="script_itemLevel" style="z-index: 1; position: absolute; top: 2px; right: 2px; text-align: right; color: ${SCRIPT_COLOR_MAIN};">${itemLevel}</div>`);
 			} else if (itemAbilityLevel && itemAbilityLevel > 0) {
-				if (!div.querySelector("div.script_itemLevel")) {
-					div.style.position = "relative";
-					div.insertAdjacentHTML("beforeend", `<div class="script_itemLevel" style="z-index: 1; position: absolute; top: 2px; right: 2px; text-align: right; color: ${SCRIPT_COLOR_MAIN};">${itemAbilityLevel}</div>`);
-				}
+				div.style.position = "relative";
+				div.insertAdjacentHTML("beforeend", `<div class="script_itemLevel" style="z-index: 1; position: absolute; top: 2px; right: 2px; text-align: right; color: ${SCRIPT_COLOR_MAIN};">${itemAbilityLevel}</div>`);
 			} else if (settingsMap.showsKeyInfoInIcon.isTrue && (itemHrid.includes("_key_fragment") || itemHrid.includes("_key"))) {
-				const map = /* @__PURE__ */ new Map();
-				map.set("/items/blue_key_fragment", isZH ? "图3" : "Z3");
-				map.set("/items/green_key_fragment", isZH ? "图4" : "Z4");
-				map.set("/items/purple_key_fragment", isZH ? "图5" : "Z5");
-				map.set("/items/white_key_fragment", isZH ? "图6" : "Z6");
-				map.set("/items/orange_key_fragment", isZH ? "图7" : "Z7");
-				map.set("/items/brown_key_fragment", isZH ? "图8" : "Z8");
-				map.set("/items/stone_key_fragment", isZH ? "图9" : "Z9");
-				map.set("/items/dark_key_fragment", isZH ? "图10" : "Z10");
-				map.set("/items/burning_key_fragment", isZH ? "图11" : "Z11");
-				map.set("/items/chimerical_entry_key", isZH ? "牢1" : "D1");
-				map.set("/items/sinister_entry_key", isZH ? "牢2" : "D2");
-				map.set("/items/enchanted_entry_key", isZH ? "牢3" : "D3");
-				map.set("/items/pirate_entry_key", isZH ? "牢4" : "D4");
-				map.set("/items/chimerical_chest_key", "3.4.5.6");
-				map.set("/items/sinister_chest_key", "5.7.8.10");
-				map.set("/items/enchanted_chest_key", "7.8.9.11");
-				map.set("/items/pirate_chest_key", "6.9.10.11");
-				if (!div.querySelector("div.script_key")) {
+				const keyInfo = keyInfoMap.get(itemHrid);
+				if (keyInfo) {
 					div.style.position = "relative";
-					div.insertAdjacentHTML("beforeend", `<div class="script_key" style="z-index: 1; position: absolute; top: 2px; right: 2px; text-align: right; color: ${SCRIPT_COLOR_MAIN};">${map.get(itemHrid)}</div>`);
+					div.insertAdjacentHTML("beforeend", `<div class="script_key" style="z-index: 1; position: absolute; top: 2px; right: 2px; text-align: right; color: ${SCRIPT_COLOR_MAIN};">${keyInfo}</div>`);
 				}
 			}
 		}
 	}
 	function initializeItemIcons() {
-		if (settingsMap.itemIconLevel.isTrue) setInterval(addItemLevels, 500);
+		if (settingsMap.itemIconLevel.isTrue) setInterval(() => {
+			if (document.querySelector("div.Item_itemContainer__x7kH1")) addItemLevels();
+		}, 1e3);
 	}
 	function handleTaskCard() {
+		if (!initData_actionDetailMap) return;
 		const taskNameDivs = document.querySelectorAll("div.RandomTask_randomTask__3B9fA div.RandomTask_name__1hl1b");
 		for (const div of taskNameDivs) {
 			if (div.querySelector("span.script_taskMapIndex")) continue;
@@ -2757,8 +2860,12 @@
 		for (const button of buttons) if (!button.querySelector("span.script_mapIndex")) button.insertAdjacentHTML("afterbegin", `<span class="script_mapIndex" style="color: ${SCRIPT_COLOR_MAIN};">${index++}. </span>`);
 	}
 	function initializeMapIndexes() {
-		if (settingsMap.taskMapIndex.isTrue) setInterval(handleTaskCard, 500);
-		if (settingsMap.mapIndex.isTrue) setInterval(addIndexToMaps, 500);
+		if (settingsMap.taskMapIndex.isTrue) setInterval(() => {
+			if (document.querySelector("div.RandomTask_randomTask__3B9fA")) handleTaskCard();
+		}, 1e3);
+		if (settingsMap.mapIndex.isTrue) setInterval(() => {
+			if (document.querySelector("div.CombatPanel_tabsComponentContainer__GsQlg")) addIndexToMaps();
+		}, 1e3);
 	}
 	function add3rdPartyLinks() {
 		const waitForNavi = () => {
@@ -2832,9 +2939,14 @@
 		if (!settingsMap.actionQueue.isTrue) return;
 		handleActionQueueMenueCalculateTime(added);
 		const listDiv = added.querySelector(".QueuedActions_actions__2Lur6");
-		new MutationObserver((mutationsList) => {
+		const observer = new MutationObserver(() => {
+			if (!added.isConnected) {
+				observer.disconnect();
+				return;
+			}
 			handleActionQueueMenueCalculateTime(added);
-		}).observe(listDiv, {
+		});
+		observer.observe(listDiv, {
 			characterData: false,
 			subtree: false,
 			childList: true
@@ -2844,7 +2956,7 @@
 		const actionDivList = added.querySelectorAll("div.QueuedActions_action__r3HlD");
 		if (!actionDivList || actionDivList.length === 0) return;
 		if (actionDivList.length !== currentActionsHridList.length - 1) {
-			console.error("handleActionQueueTooltip action queue length inconsistency");
+			console.warn("handleActionQueueTooltip action queue length inconsistency");
 			return;
 		}
 		let actionDivListIndex = 0;
@@ -2859,7 +2971,8 @@
 				isInfinit = true;
 				isAccumulatedTimeInfinite = true;
 			}
-			const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1e9;
+			const baseTimePerActionSec = initData_actionDetailMap?.[actionHrid]?.baseTimeCost / 1e9;
+			if (!baseTimePerActionSec) continue;
 			const totalEffBuff = getTotalEffiPercentage(actionHrid);
 			let timePerActionSec = baseTimePerActionSec / (1 + getToolsSpeedBuffByActionHrid(actionHrid) / 100);
 			timePerActionSec /= 1 + totalEffBuff / 100;
@@ -2872,14 +2985,14 @@
 				str = `${isZH ? "到 " : "Complete at "}${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(currentTime.getSeconds()).padStart(2, "0")}`;
 			}
 			if (hasSkippedfirstActionObj) {
-				const html = `<div class="script_actionTime" style="color: ${SCRIPT_COLOR_MAIN};">${isInfinit ? "[ ∞ ] " : `[${timeReadable(totalTimeSec)}]`} ${str}</div>`;
+				const html = `<div class="script_actionTime" style="color: ${SCRIPT_COLOR_MAIN};">${isInfinit ? "[ ∞ ] " : `[${formatDuration(totalTimeSec)}]`} ${str}</div>`;
 				if (actionDivList[actionDivListIndex].querySelector("div div.script_actionTime")) actionDivList[actionDivListIndex].querySelector("div div.script_actionTime").innerHTML = html;
 				else actionDivList[actionDivListIndex].querySelector("div").insertAdjacentHTML("beforeend", html);
 				actionDivListIndex++;
 			}
 			hasSkippedfirstActionObj = true;
 		}
-		const html = `<div id="script_queueTotalTime" style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "总时间：" : "Total time: "}${isAccumulatedTimeInfinite ? "[ ∞ ] " : `[${timeReadable(accumulatedTimeSec)}]`}</div>`;
+		const html = `<div id="script_queueTotalTime" style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "总时间：" : "Total time: "}${isAccumulatedTimeInfinite ? "[ ∞ ] " : `[${formatDuration(accumulatedTimeSec)}]`}</div>`;
 		if (document.querySelector("div#script_queueTotalTime")) document.querySelector("div#script_queueTotalTime").innerHTML = html;
 		else document.querySelector("div.QueuedActions_queuedActionsEditMenu__3OoQH").insertAdjacentHTML("afterend", html);
 	}
@@ -2889,7 +3002,6 @@
 			return;
 		}
 		if (currentActionsHridList.length > 0) return;
-		console.log("notificate empty action");
 		GM_notification({
 			text: isZH ? "动作队列为空" : "Action queue is empty.",
 			title: "MWITools"
@@ -2905,20 +3017,14 @@
 	registerMessageHandler("actions_updated", handleActionUpdateNotification);
 	const waitForMarketOrders = () => {
 		const element = document.querySelector(".MarketplacePanel_marketListings__1GCyQ");
-		if (element) {
-			console.log("start observe market order");
-			new MutationObserver((mutationsList) => {
-				mutationsList.forEach((mutation) => {
-					mutation.addedNodes.forEach((node) => {
-						if (node.classList.contains("Modal_modalContainer__3B80m")) handleMarketNewOrder(node);
-					});
-				});
-			}).observe(element, {
-				characterData: false,
-				subtree: false,
-				childList: true
-			});
-		} else setTimeout(waitForMarketOrders, 500);
+		if (element) new MutationObserver((mutationsList) => {
+			for (const mutation of mutationsList) for (const node of mutation.addedNodes) if (node.classList?.contains("Modal_modalContainer__3B80m")) handleMarketNewOrder(node);
+		}).observe(element, {
+			characterData: false,
+			subtree: false,
+			childList: true
+		});
+		else setTimeout(waitForMarketOrders, 500);
 	};
 	function initializeMarketOrderPricing() {
 		if (settingsMap.fillMarketOrderPrice.isTrue) waitForMarketOrders();
@@ -2959,6 +3065,7 @@
 	let monstersHP = [];
 	let playersMP = [];
 	let players = [];
+	let dragging = false;
 	let chart = null;
 	let monsterCounts = {};
 	let monsterEvasion = {};
@@ -3005,10 +3112,9 @@
         </div>`;
 			panel.className = "script_dps_panel";
 			let offsetX, offsetY;
-			let dragging = false;
 			panel.querySelector("#panelHeader").addEventListener("mousedown", function(e) {
 				const rect = panel.getBoundingClientRect();
-				if (e.clientX > rect.right - 10 || e.clientY > rect.bottom - 10 || e.target.id === "script_toggleButton") return;
+				if (e.clientX > rect.right - 10 || e.clientY > rect.bottom - 10 || e.target?.id === "script_toggleButton") return;
 				dragging = true;
 				offsetX = e.clientX - panel.offsetLeft;
 				offsetY = e.clientY - panel.offsetTop;
@@ -3032,7 +3138,7 @@
 			panel.addEventListener("touchstart", function(e) {
 				const rect = panel.getBoundingClientRect();
 				const touch = e.touches[0];
-				if (touch.clientX > rect.right - 10 || touch.clientY > rect.bottom - 10 || e.target.id === "script_toggleButton") return;
+				if (touch.clientX > rect.right - 10 || touch.clientY > rect.bottom - 10 || e.target?.id === "script_toggleButton") return;
 				dragging = true;
 				offsetX = touch.clientX - panel.offsetLeft;
 				offsetY = touch.clientY - panel.offsetTop;
@@ -3156,7 +3262,7 @@
 		return document.querySelector(".script_dps_panel");
 	};
 	const updateStatisticsPanel = () => {
-		const totalTime = totalDuration + (endTime - startTime) / 1e3;
+		const totalTime = totalDuration + ((endTime ?? 0) - (startTime ?? 0)) / 1e3;
 		const dps = totalDamage.map((damage) => totalTime ? Math.round(damage / totalTime) : 0);
 		const totalTeamDamage = totalDamage.reduce((acc, damage) => acc + damage, 0);
 		const totalTeamDPS = totalTime ? Math.round(totalTeamDamage / totalTime) : 0;
@@ -3176,7 +3282,7 @@
 				}
 			}
 		});
-		if (settingsMap.showDamageGraph.isTrue && true) {
+		if (settingsMap.showDamageGraph.isTrue && !dragging) {
 			getStatisticsDom();
 			chart.data.labels = players.map((player) => player?.name);
 			chart.data.datasets[0].data = dps;
@@ -3244,10 +3350,15 @@
 			const hitChanceTable = document.getElementById("script_hitChanceTable");
 			const hitChanceRows = players.map((player) => {
 				return `<tr><td style="color: white;">${player.name}</td>${Object.entries(monsterCounts).map(([monsterName, count]) => {
-					const combatStyle = player.combatDetails.combatStats.combatStyleHrids[0].split("/").pop();
-					const evasionRating = monsterEvasion[monsterName][`${player.name}-${combatStyle}`];
-					const accuracy = player.combatDetails[`${combatStyle}AccuracyRating`];
-					return `<td style="color: white;">${calculateHitChance(accuracy, evasionRating).toFixed(0)}%</td>`;
+					const styleHitChances = (player.combatDetails?.combatStats?.combatStyleHrids ?? []).map((styleHrid) => {
+						const style = styleHrid.split("/").pop();
+						const evasionRating = monsterEvasion[monsterName]?.[`${player.name}-${style}`];
+						const accuracy = player.combatDetails?.[`${style}AccuracyRating`];
+						if (evasionRating == null || accuracy == null) return null;
+						return calculateHitChance(accuracy, evasionRating);
+					}).filter((hitChance) => hitChance != null);
+					const bestHitChance = styleHitChances.length ? Math.max(...styleHitChances) : null;
+					return `<td style="color: white;">${bestHitChance == null ? "N/A" : bestHitChance.toFixed(0) + "%"}</td>`;
 				}).join("")}</tr>`;
 			}).join("");
 			hitChanceTable.innerHTML = `
@@ -3338,51 +3449,30 @@
 	function constructSelfPlayerExportObjFromInitCharacterData(characterObj, clientObj) {
 		const playerObj = {};
 		playerObj.player = {};
-		for (const skill of characterObj.characterSkills) if (skill.skillHrid.includes("stamina")) playerObj.player.staminaLevel = skill.level;
-		else if (skill.skillHrid.includes("intelligence")) playerObj.player.intelligenceLevel = skill.level;
-		else if (skill.skillHrid.includes("attack")) playerObj.player.attackLevel = skill.level;
-		else if (skill.skillHrid.includes("melee")) playerObj.player.meleeLevel = skill.level;
-		else if (skill.skillHrid.includes("defense")) playerObj.player.defenseLevel = skill.level;
-		else if (skill.skillHrid.includes("ranged")) playerObj.player.rangedLevel = skill.level;
-		else if (skill.skillHrid.includes("magic")) playerObj.player.magicLevel = skill.level;
+		const skillInfo = getCombatSkillInfo(characterObj.characterSkills);
+		for (const skillName of COMBAT_SKILL_HRIDS) {
+			const level = skillInfo[skillName]?.level;
+			if (level !== void 0) playerObj.player[`${skillName}Level`] = level;
+		}
 		playerObj.player.equipment = [];
-		for (const item of characterObj.characterItems) if (!item.itemLocationHrid.includes("/item_locations/inventory")) playerObj.player.equipment.push({
+		for (const item of characterObj.characterItems ?? []) if (!item.itemLocationHrid.includes("/item_locations/inventory")) playerObj.player.equipment.push({
 			itemLocationHrid: item.itemLocationHrid,
 			itemHrid: item.itemHrid,
 			enhancementLevel: item.enhancementLevel
 		});
 		playerObj.food = {};
 		playerObj.food["/action_types/combat"] = [];
-		for (const food of characterObj.actionTypeFoodSlotsMap["/action_types/combat"]) if (food) playerObj.food["/action_types/combat"].push({ itemHrid: food.itemHrid });
-		else playerObj.food["/action_types/combat"].push({ itemHrid: "" });
+		for (const food of characterObj.actionTypeFoodSlotsMap?.["/action_types/combat"] ?? []) playerObj.food["/action_types/combat"].push({ itemHrid: food?.itemHrid ?? "" });
 		playerObj.drinks = {};
 		playerObj.drinks["/action_types/combat"] = [];
-		for (const drink of characterObj.actionTypeDrinkSlotsMap["/action_types/combat"]) if (drink) playerObj.drinks["/action_types/combat"].push({ itemHrid: drink.itemHrid });
-		else playerObj.drinks["/action_types/combat"].push({ itemHrid: "" });
-		playerObj.abilities = [
-			{
-				abilityHrid: "",
-				level: "1"
-			},
-			{
-				abilityHrid: "",
-				level: "1"
-			},
-			{
-				abilityHrid: "",
-				level: "1"
-			},
-			{
-				abilityHrid: "",
-				level: "1"
-			},
-			{
-				abilityHrid: "",
-				level: "1"
-			}
-		];
+		for (const drink of characterObj.actionTypeDrinkSlotsMap?.["/action_types/combat"] ?? []) playerObj.drinks["/action_types/combat"].push({ itemHrid: drink?.itemHrid ?? "" });
+		playerObj.abilities = [];
+		for (let i = 0; i < 5; i++) playerObj.abilities.push({
+			abilityHrid: "",
+			level: "1"
+		});
 		let normalAbillityIndex = 1;
-		for (const ability of characterObj.combatUnit.combatAbilities) if (ability && clientObj.abilityDetailMap[ability.abilityHrid].isSpecialAbility) playerObj.abilities[0] = {
+		for (const ability of characterObj.combatUnit?.combatAbilities ?? []) if (ability && clientObj?.abilityDetailMap?.[ability.abilityHrid]?.isSpecialAbility) playerObj.abilities[0] = {
 			abilityHrid: ability.abilityHrid,
 			level: ability.level
 		};
@@ -3395,21 +3485,19 @@
 			...characterObj.consumableCombatTriggersMap
 		};
 		playerObj.houseRooms = {};
-		for (const house of Object.values(characterObj.characterHouseRoomMap)) playerObj.houseRooms[house.houseRoomHrid] = house.level;
+		for (const house of Object.values(characterObj.characterHouseRoomMap ?? {})) playerObj.houseRooms[house.houseRoomHrid] = house.level;
 		playerObj.achievements = {};
-		for (const achievement of Object.values(characterObj.characterAchievements)) playerObj.achievements[achievement.achievementHrid] = achievement.isCompleted;
+		for (const achievement of Object.values(characterObj.characterAchievements ?? {})) playerObj.achievements[achievement.achievementHrid] = achievement.isCompleted;
 		return playerObj;
 	}
 	function constructPlayerExportObjFromStoredProfile(profile, clientObj, battlePlayer) {
 		const playerObj = {};
 		playerObj.player = {};
-		for (const skill of profile.profile.characterSkills) if (skill.skillHrid.includes("stamina")) playerObj.player.staminaLevel = skill.level;
-		else if (skill.skillHrid.includes("intelligence")) playerObj.player.intelligenceLevel = skill.level;
-		else if (skill.skillHrid.includes("attack")) playerObj.player.attackLevel = skill.level;
-		else if (skill.skillHrid.includes("melee")) playerObj.player.meleeLevel = skill.level;
-		else if (skill.skillHrid.includes("defense")) playerObj.player.defenseLevel = skill.level;
-		else if (skill.skillHrid.includes("ranged")) playerObj.player.rangedLevel = skill.level;
-		else if (skill.skillHrid.includes("magic")) playerObj.player.magicLevel = skill.level;
+		const skillInfo = getCombatSkillInfo(profile.profile.characterSkills);
+		for (const skillName of COMBAT_SKILL_HRIDS) {
+			const level = skillInfo[skillName]?.level;
+			if (level !== void 0) playerObj.player[`${skillName}Level`] = level;
+		}
 		playerObj.player.equipment = [];
 		if (profile.profile.wearableItemMap) for (const key in profile.profile.wearableItemMap) {
 			const item = profile.profile.wearableItemMap[key];
@@ -3459,31 +3547,14 @@
 				}
 			}
 		}
-		playerObj.abilities = [
-			{
-				abilityHrid: "",
-				level: "1"
-			},
-			{
-				abilityHrid: "",
-				level: "1"
-			},
-			{
-				abilityHrid: "",
-				level: "1"
-			},
-			{
-				abilityHrid: "",
-				level: "1"
-			},
-			{
-				abilityHrid: "",
-				level: "1"
-			}
-		];
+		playerObj.abilities = [];
+		for (let i = 0; i < 5; i++) playerObj.abilities.push({
+			abilityHrid: "",
+			level: "1"
+		});
 		if (profile.profile.equippedAbilities) {
 			let normalAbillityIndex = 1;
-			for (const ability of profile.profile.equippedAbilities) if (ability && clientObj.abilityDetailMap[ability.abilityHrid].isSpecialAbility) playerObj.abilities[0] = {
+			for (const ability of profile.profile.equippedAbilities) if (ability && clientObj?.abilityDetailMap?.[ability.abilityHrid]?.isSpecialAbility) playerObj.abilities[0] = {
 				abilityHrid: ability.abilityHrid,
 				level: ability.level
 			};
@@ -3497,70 +3568,76 @@
 			...profile.profile.consumableCombatTriggersMap
 		};
 		playerObj.houseRooms = {};
-		for (const house of Object.values(profile.profile.characterHouseRoomMap)) playerObj.houseRooms[house.houseRoomHrid] = house.level;
+		for (const house of Object.values(profile.profile.characterHouseRoomMap ?? {})) playerObj.houseRooms[house.houseRoomHrid] = house.level;
 		playerObj.achievements = {};
-		for (const achievement of Object.values(profile.profile.characterAchievements)) playerObj.achievements[achievement.achievementHrid] = achievement.isCompleted;
+		for (const achievement of Object.values(profile.profile.characterAchievements ?? {})) playerObj.achievements[achievement.achievementHrid] = achievement.isCompleted;
 		return playerObj;
 	}
-	function addExportButton(obj) {
-		const checkElem = () => {
-			const selectedElement = document.querySelector(`div.SharableProfile_overviewTab__W4dCV`);
-			if (selectedElement) {
-				clearInterval(timer);
-				const button = document.createElement("button");
-				selectedElement.appendChild(button);
-				button.textContent = isZH ? "导出人物到剪贴板" : "Export to clipboard";
-				button.style.borderRadius = "5px";
-				button.style.height = "30px";
-				button.style.backgroundColor = SCRIPT_COLOR_MAIN;
-				button.style.color = "black";
-				button.style.boxShadow = "none";
-				button.style.border = "0px";
-				button.onclick = function() {
-					let exportString = "";
-					const playerID = obj.profile.characterSkills[0].characterID;
-					const clientObj = JSON.parse(GM_getValue("init_client_data", ""));
-					const characterObj = JSON.parse(GM_getValue("init_character_data", ""));
-					if (playerID === characterObj.character.id) exportString = JSON.stringify(constructSelfPlayerExportObjFromInitCharacterData(characterObj, clientObj));
-					else {
-						const profileList = JSON.parse(GM_getValue("profile_export_list", "[]")).filter((item) => item.characterID === playerID);
-						let profile = null;
-						if (profileList.length !== 1) {
-							console.log("Can not find stored profile for " + playerID);
-							return;
-						}
-						profile = profileList[0];
-						let battlePlayer = null;
-						if (GM_getValue("new_battle", "")) {
-							const battlePlayerList = JSON.parse(GM_getValue("new_battle", "")).players.filter((item) => item.character.id === playerID);
-							if (battlePlayerList.length === 1) battlePlayer = battlePlayerList[0];
-						}
-						exportString = JSON.stringify(constructPlayerExportObjFromStoredProfile(profile, clientObj, battlePlayer));
-					}
-					console.log(exportString);
-					navigator.clipboard.writeText(exportString);
-					button.textContent = isZH ? "已复制" : "Copied";
-					return false;
-				};
-				return false;
+	let latestProfileExportObj = null;
+	let exportButtonTimer = null;
+	function checkExportButtonElem() {
+		const selectedElement = document.querySelector(`div.SharableProfile_overviewTab__W4dCV`);
+		if (!selectedElement) return;
+		if (selectedElement.querySelector("button#script_exportButton")) return;
+		const button = document.createElement("button");
+		button.id = "script_exportButton";
+		selectedElement.appendChild(button);
+		button.textContent = isZH ? "导出人物到剪贴板" : "Export to clipboard";
+		button.style.borderRadius = "5px";
+		button.style.height = "30px";
+		button.style.backgroundColor = SCRIPT_COLOR_MAIN;
+		button.style.color = "black";
+		button.style.boxShadow = "none";
+		button.style.border = "0px";
+		button.onclick = function() {
+			const obj = latestProfileExportObj;
+			if (!obj?.profile?.characterSkills?.[0]?.characterID) return;
+			let exportString = "";
+			const playerID = obj.profile.characterSkills[0].characterID;
+			const clientObj = JSON.parse(GM_getValue("init_client_data", "null"));
+			const characterObj = JSON.parse(GM_getValue("init_character_data", "null"));
+			if (!clientObj || !characterObj) {
+				button.textContent = "Error";
+				return;
 			}
+			if (playerID === characterObj.character?.id) exportString = JSON.stringify(constructSelfPlayerExportObjFromInitCharacterData(characterObj, clientObj));
+			else {
+				const profileList = JSON.parse(GM_getValue("profile_export_list", "[]")).filter((item) => item.characterID === playerID);
+				let profile = null;
+				if (profileList.length !== 1) {
+					console.log("Can not find stored profile for " + playerID);
+					return;
+				}
+				profile = profileList[0];
+				let battlePlayer = null;
+				if (GM_getValue("new_battle", "")) {
+					const battlePlayerList = JSON.parse(GM_getValue("new_battle", "")).players.filter((item) => item.character.id === playerID);
+					if (battlePlayerList.length === 1) battlePlayer = battlePlayerList[0];
+				}
+				exportString = JSON.stringify(constructPlayerExportObjFromStoredProfile(profile, clientObj, battlePlayer));
+			}
+			navigator.clipboard.writeText(exportString);
+			button.textContent = isZH ? "已复制" : "Copied";
+			return false;
 		};
-		let timer = setInterval(checkElem, 200);
+	}
+	function addExportButton(obj) {
+		latestProfileExportObj = obj;
+		if (exportButtonTimer === null) exportButtonTimer = setInterval(checkExportButtonElem, 200);
 	}
 	function handleProfileShared(obj) {
-		let profileExportListString = GM_getValue("profile_export_list", null);
-		if (profileExportListString) {
+		let profileExportList = [];
+		const profileExportListString = GM_getValue("profile_export_list", null);
+		if (profileExportListString) try {
 			const storedProfiles = JSON.parse(profileExportListString);
-			if (!storedProfiles || !storedProfiles.filter) {
-				console.error("Found invalid profileExportList in store. profileExportList cleared.");
-				GM_setValue("profile_export_list", JSON.stringify([]));
-			}
-		} else GM_setValue("profile_export_list", JSON.stringify([]));
+			if (Array.isArray(storedProfiles)) profileExportList = storedProfiles;
+			else console.error("Found invalid profileExportList in store. profileExportList cleared.");
+		} catch {
+			console.error("Found invalid profileExportList in store. profileExportList cleared.");
+		}
 		obj.characterID = obj.profile.characterSkills[0].characterID;
 		obj.characterName = obj.profile.sharableCharacter.name;
 		obj.timestamp = Date.now();
-		profileExportListString = GM_getValue("profile_export_list", null) || JSON.stringify([]);
-		let profileExportList = JSON.parse(profileExportListString);
 		profileExportList = profileExportList.filter((item) => item.characterID !== obj.characterID);
 		profileExportList.unshift(obj);
 		if (profileExportList.length > 20) profileExportList.pop();
@@ -3579,12 +3656,8 @@
 				button.style.backgroundColor = SCRIPT_COLOR_MAIN;
 				button.style.padding = "5px";
 				button.onclick = function() {
-					console.log("Importer: Import button onclick");
 					const getPriceButton = document.querySelector(`button#buttonGetPrices`);
-					if (getPriceButton) {
-						console.log("Click getPriceButton");
-						getPriceButton.click();
-					}
+					if (getPriceButton) getPriceButton.click();
 					importDataForAmvoidguy(button);
 					return false;
 				};
@@ -3593,9 +3666,12 @@
 		let timer = setInterval(checkElem, 200);
 	}
 	async function importDataForAmvoidguy(button) {
-		const [exportObj, playerIDs, importedPlayerPositions, zone, difficultyTier, isZoneDungeon, isParty] = constructGroupExportObj();
-		console.log(exportObj);
-		console.log(playerIDs);
+		const result = constructGroupExportObj();
+		if (!result) {
+			button.textContent = isZH ? "错误：请先打开游戏页面" : "Error: Open game page first";
+			return;
+		}
+		const [exportObj, playerIDs, importedPlayerPositions, zone, difficultyTier, isZoneDungeon, isParty] = result;
 		document.querySelector(`a#group-combat-tab`).click();
 		const importInputElem = document.querySelector(`input#inputSetGroupCombatAll`);
 		importInputElem.value = JSON.stringify(exportObj);
@@ -3631,14 +3707,12 @@
 				}
 			}
 		}
-		for (let i = 0; i < 5; i++) if (importedPlayerPositions[i]) {
-			if (document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`)) {
-				document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`).checked = true;
-				document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`).dispatchEvent(new Event("change"));
+		for (let i = 0; i < 5; i++) {
+			const playerCheckbox = document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`);
+			if (playerCheckbox) {
+				playerCheckbox.checked = Boolean(importedPlayerPositions[i]);
+				playerCheckbox.dispatchEvent(new Event("change"));
 			}
-		} else if (document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`)) {
-			document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`).checked = false;
-			document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`).dispatchEvent(new Event("change"));
 		}
 		document.querySelector(`input#inputSimulationTime`).value = String(24);
 		button.textContent = isZH ? "已导入" : "Imported";
@@ -3647,8 +3721,12 @@
 		}, 500);
 	}
 	function constructGroupExportObj() {
-		const characterObj = JSON.parse(GM_getValue("init_character_data", ""));
-		const clientObj = JSON.parse(GM_getValue("init_client_data", ""));
+		const characterObj = JSON.parse(GM_getValue("init_character_data", "null"));
+		const clientObj = JSON.parse(GM_getValue("init_client_data", "null"));
+		if (!characterObj || !clientObj) {
+			console.error("constructGroupExportObj: missing stored game data. Open the game page first.");
+			return null;
+		}
 		let battleObj = null;
 		if (GM_getValue("new_battle", "")) battleObj = JSON.parse(GM_getValue("new_battle", ""));
 		const storedProfileList = JSON.parse(GM_getValue("profile_export_list", "[]"));
@@ -3681,10 +3759,10 @@
 			exportObj[1] = JSON.stringify(constructSelfPlayerExportObjFromInitCharacterData(characterObj, clientObj));
 			playerIDs[0] = characterObj.character.name;
 			importedPlayerPositions[0] = true;
-			for (const action of characterObj.characterActions) if (action && action.actionHrid.includes("/actions/combat/")) {
+			for (const action of characterObj.characterActions ?? []) if (action && action.actionHrid.includes("/actions/combat/")) {
 				zone = action.actionHrid;
 				difficultyTier = action.difficultyTier;
-				isZoneDungeon = clientObj.actionDetailMap[action.actionHrid]?.combatZoneInfo?.isDungeon;
+				isZoneDungeon = clientObj.actionDetailMap?.[action.actionHrid]?.combatZoneInfo?.isDungeon;
 				break;
 			}
 		} else {
@@ -3705,7 +3783,7 @@
 							continue;
 						}
 						const profile = profileList[0];
-						const battlePlayerList = battleObj.players.filter((item) => item.character.id === member.characterID);
+						const battlePlayerList = battleObj?.players?.filter((item) => item.character.id === member.characterID) ?? [];
 						let battlePlayer = null;
 						if (battlePlayerList.length === 1) battlePlayer = battlePlayerList[0];
 						exportObj[i] = JSON.stringify(constructPlayerExportObjFromStoredProfile(profile, clientObj, battlePlayer));
@@ -3717,7 +3795,7 @@
 			}
 			zone = characterObj.partyInfo?.party?.actionHrid;
 			difficultyTier = characterObj.partyInfo?.party?.difficultyTier;
-			isZoneDungeon = clientObj.actionDetailMap[zone]?.combatZoneInfo?.isDungeon;
+			isZoneDungeon = clientObj.actionDetailMap?.[zone]?.combatZoneInfo?.isDungeon;
 		}
 		return [
 			exportObj,
@@ -3759,6 +3837,15 @@
 			subtree: true
 		});
 	}
+	function getStoredLevelExperienceTable() {
+		let table = {};
+		try {
+			table = JSON.parse(GM_getValue("init_client_data", "null"))?.levelExperienceTable ?? {};
+		} catch {
+			table = {};
+		}
+		return table;
+	}
 	function handleResultForAmvoidguy(expNodes, parentDiv) {
 		const isZHIn3rdPartyWebsites = localStorage.getItem("i18nextLng")?.toLowerCase()?.startsWith("zh");
 		let perHourGainExp = {
@@ -3770,81 +3857,31 @@
 			ranged: 0,
 			magic: 0
 		};
-		expNodes.forEach((expNode) => {
-			if (getOriTextFromElement(expNode.children[0]).includes("Stamina") || getOriTextFromElement(expNode.children[0]).includes("耐力")) perHourGainExp.stamina = Number(expNode.children[1].textContent);
-			else if (getOriTextFromElement(expNode.children[0]).includes("Intelligence") || getOriTextFromElement(expNode.children[0]).includes("智力")) perHourGainExp.intelligence = Number(expNode.children[1].textContent);
-			else if (getOriTextFromElement(expNode.children[0]).includes("Attack") || getOriTextFromElement(expNode.children[0]).includes("攻击")) perHourGainExp.attack = Number(expNode.children[1].textContent);
-			else if (getOriTextFromElement(expNode.children[0]).includes("Melee") || getOriTextFromElement(expNode.children[0]).includes("近战")) perHourGainExp.melee = Number(expNode.children[1].textContent);
-			else if (getOriTextFromElement(expNode.children[0]).includes("Defense") || getOriTextFromElement(expNode.children[0]).includes("防御")) perHourGainExp.defense = Number(expNode.children[1].textContent);
-			else if (getOriTextFromElement(expNode.children[0]).includes("Ranged") || getOriTextFromElement(expNode.children[0]).includes("远程")) perHourGainExp.ranged = Number(expNode.children[1].textContent);
-			else if (getOriTextFromElement(expNode.children[0]).includes("Magic") || getOriTextFromElement(expNode.children[0]).includes("魔法")) perHourGainExp.magic = Number(expNode.children[1].textContent);
-		});
-		let data = GM_getValue("init_character_data", null);
-		let obj = JSON.parse(data);
-		if (!obj || !obj.characterSkills || !obj.currentTimestamp) {
+		for (const expNode of expNodes) if (getOriTextFromElement(expNode.children[0]).includes("Stamina") || getOriTextFromElement(expNode.children[0]).includes("耐力")) perHourGainExp.stamina = Number(expNode.children[1].textContent);
+		else if (getOriTextFromElement(expNode.children[0]).includes("Intelligence") || getOriTextFromElement(expNode.children[0]).includes("智力")) perHourGainExp.intelligence = Number(expNode.children[1].textContent);
+		else if (getOriTextFromElement(expNode.children[0]).includes("Attack") || getOriTextFromElement(expNode.children[0]).includes("攻击")) perHourGainExp.attack = Number(expNode.children[1].textContent);
+		else if (getOriTextFromElement(expNode.children[0]).includes("Melee") || getOriTextFromElement(expNode.children[0]).includes("近战")) perHourGainExp.melee = Number(expNode.children[1].textContent);
+		else if (getOriTextFromElement(expNode.children[0]).includes("Defense") || getOriTextFromElement(expNode.children[0]).includes("防御")) perHourGainExp.defense = Number(expNode.children[1].textContent);
+		else if (getOriTextFromElement(expNode.children[0]).includes("Ranged") || getOriTextFromElement(expNode.children[0]).includes("远程")) perHourGainExp.ranged = Number(expNode.children[1].textContent);
+		else if (getOriTextFromElement(expNode.children[0]).includes("Magic") || getOriTextFromElement(expNode.children[0]).includes("魔法")) perHourGainExp.magic = Number(expNode.children[1].textContent);
+		let obj = JSON.parse(GM_getValue("init_character_data", "null"));
+		if (!obj || !obj.characterSkills) {
 			console.error("handleResult no character localstorage");
 			return;
 		}
-		let skillLevels = {};
-		for (const skill of obj.characterSkills) if (skill.skillHrid.includes("stamina")) {
-			skillLevels.stamina = {};
-			skillLevels.stamina.skillName = "Stamina";
-			skillLevels.stamina.skillZhName = "耐力";
-			skillLevels.stamina.currentLevel = skill.level;
-			skillLevels.stamina.currentExp = skill.experience;
-		} else if (skill.skillHrid.includes("intelligence")) {
-			skillLevels.intelligence = {};
-			skillLevels.intelligence.skillName = "Intelligence";
-			skillLevels.intelligence.skillZhName = "智力";
-			skillLevels.intelligence.currentLevel = skill.level;
-			skillLevels.intelligence.currentExp = skill.experience;
-		} else if (skill.skillHrid.includes("attack")) {
-			skillLevels.attack = {};
-			skillLevels.attack.skillName = "Attack";
-			skillLevels.attack.skillZhName = "攻击";
-			skillLevels.attack.currentLevel = skill.level;
-			skillLevels.attack.currentExp = skill.experience;
-		} else if (skill.skillHrid.includes("melee")) {
-			skillLevels.melee = {};
-			skillLevels.melee.skillName = "Melee";
-			skillLevels.melee.skillZhName = "近战";
-			skillLevels.melee.currentLevel = skill.level;
-			skillLevels.melee.currentExp = skill.experience;
-		} else if (skill.skillHrid.includes("defense")) {
-			skillLevels.defense = {};
-			skillLevels.defense.skillName = "Defense";
-			skillLevels.defense.skillZhName = "防御";
-			skillLevels.defense.currentLevel = skill.level;
-			skillLevels.defense.currentExp = skill.experience;
-		} else if (skill.skillHrid.includes("ranged")) {
-			skillLevels.ranged = {};
-			skillLevels.ranged.skillName = "Ranged";
-			skillLevels.ranged.skillZhName = "远程";
-			skillLevels.ranged.currentLevel = skill.level;
-			skillLevels.ranged.currentExp = skill.experience;
-		} else if (skill.skillHrid.includes("magic")) {
-			skillLevels.magic = {};
-			skillLevels.magic.skillName = "Magic";
-			skillLevels.magic.skillZhName = "魔法";
-			skillLevels.magic.currentLevel = skill.level;
-			skillLevels.magic.currentExp = skill.experience;
-		}
-		const skillNamesInOrder = [
-			"stamina",
-			"intelligence",
-			"attack",
-			"melee",
-			"defense",
-			"ranged",
-			"magic"
-		];
+		const skillLevels = buildCombatSkillLevels(obj.characterSkills);
 		let hTMLStr = "";
-		for (const skill of skillNamesInOrder) hTMLStr += `<div id="${"inputDiv_" + skill}" style="display: flex; justify-content: flex-end">${isZHIn3rdPartyWebsites ? skillLevels[skill].skillZhName : skillLevels[skill].skillName}${isZHIn3rdPartyWebsites ? "到" : " to level "}<input id="${"input_" + skill}" type="number" value="${skillLevels[skill].currentLevel + 1}" min="${skillLevels[skill].currentLevel + 1}" max="200">${isZHIn3rdPartyWebsites ? "级" : ""}</div>`;
+		for (const skill of COMBAT_SKILL_HRIDS) {
+			const skillInfo = skillLevels[skill];
+			if (!skillInfo) continue;
+			hTMLStr += `<div id="${"inputDiv_" + skill}" style="display: flex; justify-content: flex-end">${isZHIn3rdPartyWebsites ? skillInfo.skillZhName : skillInfo.skillName}${isZHIn3rdPartyWebsites ? "到" : " to level "}<input id="${"input_" + skill}" type="number" value="${skillInfo.currentLevel + 1}" min="${skillInfo.currentLevel + 1}" max="200">${isZHIn3rdPartyWebsites ? "级" : ""}</div>`;
+		}
 		hTMLStr += `<div id="script_afterDays" style="display: flex; justify-content: flex-end"><input id="script_afterDays_input" type="number" value="1" min="0" max="200">${isZHIn3rdPartyWebsites ? "天后" : "days after"}</div>`;
 		hTMLStr += `<div id="needDiv"></div>`;
 		hTMLStr += `<div id="needListDiv"></div>`;
 		parentDiv.innerHTML = hTMLStr;
-		for (const skill of skillNamesInOrder) {
+		for (const skill of COMBAT_SKILL_HRIDS) {
+			if (!skillLevels[skill]) continue;
 			const skillDiv = parentDiv.querySelector(`div#${"inputDiv_" + skill}`);
 			const skillInput = parentDiv.querySelector(`input#${"input_" + skill}`);
 			skillInput.onchange = () => {
@@ -3860,60 +3897,71 @@
 		const daysAfterDiv = parentDiv.querySelector(`div#script_afterDays`);
 		const daysAfterInput = parentDiv.querySelector(`input#script_afterDays_input`);
 		daysAfterInput.onchange = () => {
-			calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
+			calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
 		};
 		daysAfterInput.addEventListener("keyup", function(evt) {
-			calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
+			calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
 		});
 		daysAfterDiv.onclick = () => {
-			calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
+			calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
 		};
 		const expensesSpan = document.querySelector(`span#expensesSpan`);
 		const revenueSpan = document.querySelector(`span#revenueSpan`);
 		const profitSpan = document.querySelector(`span#profitPreview`);
 		const expenseDiv = document.querySelector(`div#script_expense`);
 		const revenueDiv = document.querySelector(`div#script_revenue`);
-		if (expenseDiv && expenseDiv) {
+		if (expenseDiv && revenueDiv) {
 			expenseDiv.textContent = expensesSpan.parentNode.textContent;
 			revenueDiv.textContent = revenueSpan.parentNode.textContent;
 		} else profitSpan.parentNode.insertAdjacentHTML("beforeend", `<div id="script_expense" style="background-color: #DCDCDC; color: black;">${expensesSpan.parentNode.textContent}</div><div id="script_revenue" style="background-color: #DCDCDC; color: black;">${revenueSpan.parentNode.textContent}</div>`);
 	}
-	function calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites) {
-		const initData_levelExperienceTable = JSON.parse(GM_getValue("init_client_data", null)).levelExperienceTable;
+	function calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites) {
+		const initData_levelExperienceTable = getStoredLevelExperienceTable();
 		const days = Number(daysAfterInput.value);
 		parentDiv.querySelector(`div#needDiv`).textContent = `${isZHIn3rdPartyWebsites ? "" : "After"} ${days} ${isZHIn3rdPartyWebsites ? "天后：" : "days: "}`;
 		const listDiv = parentDiv.querySelector(`div#needListDiv`);
+		if (!Object.keys(initData_levelExperienceTable).length) {
+			listDiv.innerHTML = isZHIn3rdPartyWebsites ? "缺少游戏数据" : "Missing game data";
+			return;
+		}
 		let html = "";
 		let resultLevels = {};
-		for (const skillName of skillNamesInOrder) for (const skill of Object.values(skillLevels)) if (skill.skillName.toLowerCase() === skillName.toLowerCase()) {
-			const exp = skill.currentExp + perHourGainExp[skill.skillName.toLowerCase()] * days * 24;
+		for (const skillName of COMBAT_SKILL_HRIDS) {
+			const skill = skillLevels[skillName];
+			if (!skill) continue;
+			const exp = skill.currentExp + perHourGainExp[skillName] * days * 24;
 			let level = 1;
 			while (initData_levelExperienceTable[level] < exp) level++;
 			level--;
 			const minExpAtLevel = initData_levelExperienceTable[level];
 			const expSpanInLevel = initData_levelExperienceTable[level + 1] - 1 - minExpAtLevel;
 			const levelPercentage = Number((exp - minExpAtLevel) / expSpanInLevel * 100).toFixed(1);
-			resultLevels[skillName.toLowerCase()] = level;
+			resultLevels[skillName] = level;
 			html += `<div>${isZHIn3rdPartyWebsites ? skill.skillZhName : skill.skillName} ${isZHIn3rdPartyWebsites ? "" : "level"} ${level} ${isZHIn3rdPartyWebsites ? "级" : ""} ${levelPercentage}%</div>`;
-			break;
 		}
 		const combatLevel = .1 * (resultLevels.stamina + resultLevels.intelligence + resultLevels.defense + resultLevels.attack + Math.max(resultLevels.melee, resultLevels.ranged, resultLevels.magic)) + .5 * Math.max(resultLevels.attack, resultLevels.defense, resultLevels.melee, resultLevels.ranged, resultLevels.magic);
-		html += `<div>${isZHIn3rdPartyWebsites ? "战斗等级：" : "Combat level: "} ${combatLevel.toFixed(1)}</div>`;
+		html += `<div>${isZHIn3rdPartyWebsites ? "战斗等级：" : "Combat level: "} ${Number.isFinite(combatLevel) ? combatLevel.toFixed(1) : "N/A"}</div>`;
 		listDiv.innerHTML = html;
 	}
 	function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites) {
-		const initData_levelExperienceTable = JSON.parse(GM_getValue("init_client_data", null)).levelExperienceTable;
+		const initData_levelExperienceTable = getStoredLevelExperienceTable();
 		const targetLevel = Number(skillInputElem.value);
-		parentDiv.querySelector(`div#needDiv`).textContent = `${isZHIn3rdPartyWebsites ? skillLevels[skillName].skillZhName : skillLevels[skillName].skillName} ${isZHIn3rdPartyWebsites ? "到" : "to level"} ${targetLevel} ${isZHIn3rdPartyWebsites ? "级 还需：" : " takes: "}`;
+		const skillInfo = skillLevels[skillName];
+		if (!skillInfo) return;
+		parentDiv.querySelector(`div#needDiv`).textContent = `${isZHIn3rdPartyWebsites ? skillInfo.skillZhName : skillInfo.skillName} ${isZHIn3rdPartyWebsites ? "到" : "to level"} ${targetLevel} ${isZHIn3rdPartyWebsites ? "级 还需：" : " takes: "}`;
 		const listDiv = parentDiv.querySelector(`div#needListDiv`);
-		const currentLevel = Number(skillLevels[skillName].currentLevel);
-		const currentExp = Number(skillLevels[skillName].currentExp);
+		if (!Object.keys(initData_levelExperienceTable).length) {
+			listDiv.innerHTML = isZHIn3rdPartyWebsites ? "缺少游戏数据" : "Missing game data";
+			return;
+		}
+		const currentLevel = Number(skillInfo.currentLevel);
+		const currentExp = Number(skillInfo.currentExp);
 		if (targetLevel > currentLevel && targetLevel <= 200) {
 			if (perHourGainExp[skillName] === 0) listDiv.innerHTML = isZHIn3rdPartyWebsites ? "永远" : "Forever";
 			else {
 				let needHours = (initData_levelExperienceTable[targetLevel] - currentExp) / perHourGainExp[skillName];
 				let html = "";
-				html += `<div>[${hoursToReadableString(needHours)}]</div>`;
+				html += `<div>[${formatDuration(needHours * 3600)}]</div>`;
 				const consumeDivs = document.querySelectorAll(`div#simulationResultConsumablesUsed div.row`);
 				for (const elem of consumeDivs) {
 					const conName = elem.children[0].textContent;
@@ -3923,15 +3971,6 @@
 				listDiv.innerHTML = html;
 			}
 		} else listDiv.innerHTML = isZHIn3rdPartyWebsites ? "输入错误" : "Input error";
-	}
-	function hoursToReadableString(hours) {
-		const sec = hours * 60 * 60;
-		if (sec >= 86400) return Number(sec / 86400).toFixed(1) + (isZH ? " 天" : " days");
-		const d = new Date(Math.round(sec * 1e3));
-		function pad(i) {
-			return ("0" + i).slice(-2);
-		}
-		return d.getUTCHours() + "h " + pad(d.getUTCMinutes()) + "m " + pad(d.getUTCSeconds()) + "s";
 	}
 	function initializeExternalTools() {
 		const url = document.URL;
@@ -3951,7 +3990,6 @@
 		waitForSettings();
 	}
 	function startMWITools() {
-		console.log(window.location.href);
 		if (initializeExternalTools()) return;
 		initializeGameRuntime();
 		initializeGameFeatures();

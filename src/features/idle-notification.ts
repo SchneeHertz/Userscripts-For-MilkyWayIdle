@@ -7,7 +7,6 @@ function notificate() {
     if (currentActionsHridList.length > 0) {
         return;
     }
-    console.log("notificate empty action");
     GM_notification({
         text: isZH ? "动作队列为空" : "Action queue is empty.",
         title: "MWITools",

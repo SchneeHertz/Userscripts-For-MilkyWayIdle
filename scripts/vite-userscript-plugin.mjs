@@ -23,6 +23,27 @@ export function userscriptBundlePlugin({ sourceDirectory, outputFileName, instal
             for (const file of ["manifest.json", "userscript.meta.txt", "preamble.txt"]) {
                 this.addWatchFile(resolveSource(file));
             }
+
+            // 校验模块顺序：核心状态模块必须排在功能模块之前（共享作用域依赖）
+            const manifest = JSON.parse(await readSource("manifest.json"));
+            const order = manifest.modules.map((module) => module.name);
+            const runtimeIndex = order.indexOf("core/runtime");
+            const firstConsumerIndex = order.findIndex((name) => name.startsWith("features/") || name.startsWith("integrations/"));
+            if (runtimeIndex === -1) {
+                this.error(`manifest.json is missing the "core/runtime" module.`);
+            }
+            if (firstConsumerIndex !== -1 && runtimeIndex > firstConsumerIndex) {
+                this.error(
+                    `manifest.json module order is invalid: \"core/runtime\" (${runtimeIndex}) must come before the first feature/integration module (${firstConsumerIndex}).`
+                );
+            }
+            const seen = new Set();
+            for (const module of manifest.modules) {
+                if (seen.has(module.name)) {
+                    this.error(`manifest.json contains duplicate module name: ${module.name}`);
+                }
+                seen.add(module.name);
+            }
         },
 
         async load(id) {

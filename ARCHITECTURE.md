@@ -26,6 +26,7 @@ src/
 │  └─ userscript-globals.d.ts # GM_*、Chart、DOM 增强声明
 ├─ core/
 │  ├─ settings.ts           # 设置、语言、配色、数字格式化
+│  ├─ utils.ts              # 时长格式化、战斗技能提取等公共工具
 │  ├─ runtime.ts            # 共享状态、WebSocket 拦截、消息总线
 │  └─ dom-translation.ts    # 汉化 DOM 文本兼容
 ├─ i18n/
@@ -53,11 +54,13 @@ MWITools.js                 # 生成后的可安装 userscript
 
 Tampermonkey/Steam 需要一个可直接安装的经典 userscript，因此业务源码采用 TypeScript 编写，但仍为共享作用域的构建时模块（不引入浏览器原生 ESM）。`src/vite-entry.ts` 引用一个虚拟入口，`scripts/vite-userscript-plugin.mjs` 按 `src/manifest.json` 读取 `.ts` 模块，Vite/Rolldown 将其转译并输出为严格模式 IIFE。
 
-插件在产物顶部注入 userscript 元数据和说明，并把最终文件同步到根目录 `MWITools.js`。这保留了单文件安装体验，同时由 Vite 统一负责转译、监听和打包，由 TypeScript 负责静态类型检查。`MWITools.js` 是构建产物，不应手工编辑。
+插件在产物顶部注入 userscript 元数据和说明，并把最终文件同步到根目录 `MWITools.js`。这保留了单文件安装体验，同时由 Vite 统一负责转译、监听和打包，由 TypeScript 负责静态类型检查。`MWITools.js` 是构建产物，不应手工编辑；由于它与源码一起提交，修改源码后需重新构建并提交，避免仓库产物过期。
+
+构建时插件会校验 `manifest.json`：`core/runtime` 必须位于第一个 feature/integration 模块之前（共享作用域依赖顺序），且模块名不得重复。
 
 ### 类型检查
 
-`npm run typecheck` 基于 `tsconfig.json` 执行 `tsc --noEmit`，只做检查不产出文件。由于片段间共享作用域，函数签名的注释与 `src/types/userscript-globals.d.ts` 中的全局声明（GM_* API、Math、Chart、DOM 增强）提供类型来源。
+`npm run typecheck` 基于 `tsconfig.json` 执行 `tsc --noEmit`，只做检查不产出文件。已开启 `strictNullChecks`，DOM 查询与游戏数据访问尽量使用可选链/守卫，避免运行时空指针。由于片段间共享作用域，函数签名的注释与 `src/types/userscript-globals.d.ts` 中的全局声明（GM_* API、Math、Chart、DOM 增强）提供类型来源。
 
 ### 统一启动
 

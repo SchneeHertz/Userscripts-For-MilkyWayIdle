@@ -1,6 +1,7 @@
 {
   "modules": [
     { "name": "core/settings", "path": "core/settings.ts" },
+    { "name": "core/utils", "path": "core/utils.ts" },
     { "name": "i18n/items", "path": "i18n/items.ts" },
     { "name": "i18n/actions", "path": "i18n/actions.ts" },
     { "name": "i18n/others", "path": "i18n/others.ts" },

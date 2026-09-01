@@ -3,27 +3,17 @@ function constructSelfPlayerExportObjFromInitCharacterData(characterObj, clientO
     playerObj.player = {};
 
     // Levels
-    for (const skill of characterObj.characterSkills) {
-        if (skill.skillHrid.includes("stamina")) {
-            playerObj.player.staminaLevel = skill.level;
-        } else if (skill.skillHrid.includes("intelligence")) {
-            playerObj.player.intelligenceLevel = skill.level;
-        } else if (skill.skillHrid.includes("attack")) {
-            playerObj.player.attackLevel = skill.level;
-        } else if (skill.skillHrid.includes("melee")) {
-            playerObj.player.meleeLevel = skill.level;
-        } else if (skill.skillHrid.includes("defense")) {
-            playerObj.player.defenseLevel = skill.level;
-        } else if (skill.skillHrid.includes("ranged")) {
-            playerObj.player.rangedLevel = skill.level;
-        } else if (skill.skillHrid.includes("magic")) {
-            playerObj.player.magicLevel = skill.level;
+    const skillInfo = getCombatSkillInfo(characterObj.characterSkills);
+    for (const skillName of COMBAT_SKILL_HRIDS) {
+        const level = skillInfo[skillName]?.level;
+        if (level !== undefined) {
+            playerObj.player[`${skillName}Level`] = level;
         }
     }
 
     // Items
     playerObj.player.equipment = [];
-    for (const item of characterObj.characterItems) {
+    for (const item of characterObj.characterItems ?? []) {
         if (!item.itemLocationHrid.includes("/item_locations/inventory")) {
             playerObj.player.equipment.push({
                 itemLocationHrid: item.itemLocationHrid,
@@ -36,59 +26,29 @@ function constructSelfPlayerExportObjFromInitCharacterData(characterObj, clientO
     // Food
     playerObj.food = {};
     playerObj.food["/action_types/combat"] = [];
-    for (const food of characterObj.actionTypeFoodSlotsMap["/action_types/combat"]) {
-        if (food) {
-            playerObj.food["/action_types/combat"].push({
-                itemHrid: food.itemHrid,
-            });
-        } else {
-            playerObj.food["/action_types/combat"].push({
-                itemHrid: "",
-            });
-        }
+    for (const food of characterObj.actionTypeFoodSlotsMap?.["/action_types/combat"] ?? []) {
+        playerObj.food["/action_types/combat"].push({
+            itemHrid: food?.itemHrid ?? "",
+        });
     }
 
     // Drinks
     playerObj.drinks = {};
     playerObj.drinks["/action_types/combat"] = [];
-    for (const drink of characterObj.actionTypeDrinkSlotsMap["/action_types/combat"]) {
-        if (drink) {
-            playerObj.drinks["/action_types/combat"].push({
-                itemHrid: drink.itemHrid,
-            });
-        } else {
-            playerObj.drinks["/action_types/combat"].push({
-                itemHrid: "",
-            });
-        }
+    for (const drink of characterObj.actionTypeDrinkSlotsMap?.["/action_types/combat"] ?? []) {
+        playerObj.drinks["/action_types/combat"].push({
+            itemHrid: drink?.itemHrid ?? "",
+        });
     }
 
     // Abilities
-    playerObj.abilities = [
-        {
-            abilityHrid: "",
-            level: "1",
-        },
-        {
-            abilityHrid: "",
-            level: "1",
-        },
-        {
-            abilityHrid: "",
-            level: "1",
-        },
-        {
-            abilityHrid: "",
-            level: "1",
-        },
-        {
-            abilityHrid: "",
-            level: "1",
-        },
-    ];
+    playerObj.abilities = [];
+    for (let i = 0; i < 5; i++) {
+        playerObj.abilities.push({ abilityHrid: "", level: "1" });
+    }
     let normalAbillityIndex = 1;
-    for (const ability of characterObj.combatUnit.combatAbilities) {
-        if (ability && clientObj.abilityDetailMap[ability.abilityHrid].isSpecialAbility) {
+    for (const ability of characterObj.combatUnit?.combatAbilities ?? []) {
+        if (ability && clientObj?.abilityDetailMap?.[ability.abilityHrid]?.isSpecialAbility) {
             playerObj.abilities[0] = {
                 abilityHrid: ability.abilityHrid,
                 level: ability.level,
@@ -106,13 +66,13 @@ function constructSelfPlayerExportObjFromInitCharacterData(characterObj, clientO
 
     // HouseRooms
     playerObj.houseRooms = {};
-    for (const house of Object.values(characterObj.characterHouseRoomMap)) {
+    for (const house of Object.values(characterObj.characterHouseRoomMap ?? {})) {
         playerObj.houseRooms[house.houseRoomHrid] = house.level;
     }
 
     // Achievements
     playerObj.achievements = {};
-    for (const achievement of Object.values(characterObj.characterAchievements)) {
+    for (const achievement of Object.values(characterObj.characterAchievements ?? {})) {
         playerObj.achievements[achievement.achievementHrid] = achievement.isCompleted;
     }
 
@@ -124,21 +84,11 @@ function constructPlayerExportObjFromStoredProfile(profile, clientObj, battlePla
     playerObj.player = {};
 
     // Levels
-    for (const skill of profile.profile.characterSkills) {
-        if (skill.skillHrid.includes("stamina")) {
-            playerObj.player.staminaLevel = skill.level;
-        } else if (skill.skillHrid.includes("intelligence")) {
-            playerObj.player.intelligenceLevel = skill.level;
-        } else if (skill.skillHrid.includes("attack")) {
-            playerObj.player.attackLevel = skill.level;
-        } else if (skill.skillHrid.includes("melee")) {
-            playerObj.player.meleeLevel = skill.level;
-        } else if (skill.skillHrid.includes("defense")) {
-            playerObj.player.defenseLevel = skill.level;
-        } else if (skill.skillHrid.includes("ranged")) {
-            playerObj.player.rangedLevel = skill.level;
-        } else if (skill.skillHrid.includes("magic")) {
-            playerObj.player.magicLevel = skill.level;
+    const skillInfo = getCombatSkillInfo(profile.profile.characterSkills);
+    for (const skillName of COMBAT_SKILL_HRIDS) {
+        const level = skillInfo[skillName]?.level;
+        if (level !== undefined) {
+            playerObj.player[`${skillName}Level`] = level;
         }
     }
 
@@ -273,32 +223,14 @@ function constructPlayerExportObjFromStoredProfile(profile, clientObj, battlePla
     }
 
     // Abilities
-    playerObj.abilities = [
-        {
-            abilityHrid: "",
-            level: "1",
-        },
-        {
-            abilityHrid: "",
-            level: "1",
-        },
-        {
-            abilityHrid: "",
-            level: "1",
-        },
-        {
-            abilityHrid: "",
-            level: "1",
-        },
-        {
-            abilityHrid: "",
-            level: "1",
-        },
-    ];
+    playerObj.abilities = [];
+    for (let i = 0; i < 5; i++) {
+        playerObj.abilities.push({ abilityHrid: "", level: "1" });
+    }
     if (profile.profile.equippedAbilities) {
         let normalAbillityIndex = 1;
         for (const ability of profile.profile.equippedAbilities) {
-            if (ability && clientObj.abilityDetailMap[ability.abilityHrid].isSpecialAbility) {
+            if (ability && clientObj?.abilityDetailMap?.[ability.abilityHrid]?.isSpecialAbility) {
                 playerObj.abilities[0] = {
                     abilityHrid: ability.abilityHrid,
                     level: ability.level,
@@ -322,94 +254,112 @@ function constructPlayerExportObjFromStoredProfile(profile, clientObj, battlePla
 
     // HouseRooms
     playerObj.houseRooms = {};
-    for (const house of Object.values(profile.profile.characterHouseRoomMap)) {
+    for (const house of Object.values(profile.profile.characterHouseRoomMap ?? {})) {
         playerObj.houseRooms[house.houseRoomHrid] = house.level;
     }
 
     // Achievements
     playerObj.achievements = {};
-    for (const achievement of Object.values(profile.profile.characterAchievements)) {
+    for (const achievement of Object.values(profile.profile.characterAchievements ?? {})) {
         playerObj.achievements[achievement.achievementHrid] = achievement.isCompleted;
     }
 
     return playerObj;
 }
 
+let latestProfileExportObj: any = null;
+let exportButtonTimer: number | null = null;
+
+function checkExportButtonElem() {
+    const selectedElement = document.querySelector(`div.SharableProfile_overviewTab__W4dCV`);
+    if (!selectedElement) {
+        return;
+    }
+    if (selectedElement.querySelector("button#script_exportButton")) {
+        return;
+    }
+
+    const button = document.createElement("button");
+    button.id = "script_exportButton";
+    selectedElement.appendChild(button);
+    button.textContent = isZH ? "导出人物到剪贴板" : "Export to clipboard";
+    button.style.borderRadius = "5px";
+    button.style.height = "30px";
+    button.style.backgroundColor = SCRIPT_COLOR_MAIN;
+    button.style.color = "black";
+    button.style.boxShadow = "none";
+    button.style.border = "0px";
+    button.onclick = function () {
+        const obj = latestProfileExportObj;
+        if (!obj?.profile?.characterSkills?.[0]?.characterID) {
+            return;
+        }
+        let exportString = "";
+        const playerID = obj.profile.characterSkills[0].characterID;
+        const clientObj = JSON.parse(GM_getValue("init_client_data", "null"));
+        const characterObj = JSON.parse(GM_getValue("init_character_data", "null"));
+        if (!clientObj || !characterObj) {
+            button.textContent = "Error";
+            return;
+        }
+
+        if (playerID === characterObj.character?.id) {
+            exportString = JSON.stringify(constructSelfPlayerExportObjFromInitCharacterData(characterObj, clientObj));
+        } else {
+            const storedProfileList = JSON.parse(GM_getValue("profile_export_list", "[]"));
+            const profileList = storedProfileList.filter((item) => item.characterID === playerID);
+            let profile = null;
+            if (profileList.length !== 1) {
+                console.log("Can not find stored profile for " + playerID);
+                return;
+            }
+            profile = profileList[0];
+
+            let battlePlayer = null;
+            if (GM_getValue("new_battle", "")) {
+                const battleObj = JSON.parse(GM_getValue("new_battle", ""));
+                const battlePlayerList = battleObj.players.filter((item) => item.character.id === playerID);
+                if (battlePlayerList.length === 1) {
+                    battlePlayer = battlePlayerList[0];
+                }
+            }
+
+            exportString = JSON.stringify(constructPlayerExportObjFromStoredProfile(profile, clientObj, battlePlayer));
+        }
+
+        navigator.clipboard.writeText(exportString);
+        button.textContent = isZH ? "已复制" : "Copied";
+        return false;
+    };
+}
 
 function addExportButton(obj) {
-    const checkElem = () => {
-        const selectedElement = document.querySelector(`div.SharableProfile_overviewTab__W4dCV`);
-        if (selectedElement) {
-            clearInterval(timer);
-
-            const button = document.createElement("button");
-            selectedElement.appendChild(button);
-            button.textContent = isZH ? "导出人物到剪贴板" : "Export to clipboard";
-            button.style.borderRadius = "5px";
-            button.style.height = "30px";
-            button.style.backgroundColor = SCRIPT_COLOR_MAIN;
-            button.style.color = "black";
-            button.style.boxShadow = "none";
-            button.style.border = "0px";
-            button.onclick = function () {
-                let exportString = "";
-                const playerID = obj.profile.characterSkills[0].characterID;
-                const clientObj = JSON.parse(GM_getValue("init_client_data", ""));
-                const characterObj = JSON.parse(GM_getValue("init_character_data", ""));
-
-                if (playerID === characterObj.character.id) {
-                    exportString = JSON.stringify(constructSelfPlayerExportObjFromInitCharacterData(characterObj, clientObj));
-                } else {
-                    const storedProfileList = JSON.parse(GM_getValue("profile_export_list", "[]"));
-                    const profileList = storedProfileList.filter((item) => item.characterID === playerID);
-                    let profile = null;
-                    if (profileList.length !== 1) {
-                        console.log("Can not find stored profile for " + playerID);
-                        return;
-                    }
-                    profile = profileList[0];
-
-                    let battlePlayer = null;
-                    if (GM_getValue("new_battle", "")) {
-                        const battleObj = JSON.parse(GM_getValue("new_battle", ""));
-                        const battlePlayerList = battleObj.players.filter((item) => item.character.id === playerID);
-                        if (battlePlayerList.length === 1) {
-                            battlePlayer = battlePlayerList[0];
-                        }
-                    }
-
-                    exportString = JSON.stringify(constructPlayerExportObjFromStoredProfile(profile, clientObj, battlePlayer));
-                }
-
-                console.log(exportString);
-                navigator.clipboard.writeText(exportString);
-                button.textContent = isZH ? "已复制" : "Copied";
-                return false;
-            };
-            return false;
-        }
-    };
-    let timer = setInterval(checkElem, 200);
+    latestProfileExportObj = obj;
+    if (exportButtonTimer === null) {
+        exportButtonTimer = setInterval(checkExportButtonElem, 200);
+    }
 }
 
 function handleProfileShared(obj) {
-    let profileExportListString = GM_getValue("profile_export_list", null);
+    let profileExportList: any[] = [];
+    const profileExportListString = GM_getValue("profile_export_list", null);
     if (profileExportListString) {
-        const storedProfiles = JSON.parse(profileExportListString);
-        if (!storedProfiles || !storedProfiles.filter) {
+        try {
+            const storedProfiles = JSON.parse(profileExportListString);
+            if (Array.isArray(storedProfiles)) {
+                profileExportList = storedProfiles;
+            } else {
+                console.error("Found invalid profileExportList in store. profileExportList cleared.");
+            }
+        } catch {
             console.error("Found invalid profileExportList in store. profileExportList cleared.");
-            GM_setValue("profile_export_list", JSON.stringify([]));
         }
-    } else {
-        GM_setValue("profile_export_list", JSON.stringify([]));
     }
 
     obj.characterID = obj.profile.characterSkills[0].characterID;
     obj.characterName = obj.profile.sharableCharacter.name;
     obj.timestamp = Date.now();
 
-    profileExportListString = GM_getValue("profile_export_list", null) || JSON.stringify([]);
-    let profileExportList = JSON.parse(profileExportListString);
     profileExportList = profileExportList.filter((item) => item.characterID !== obj.characterID);
     profileExportList.unshift(obj);
     if (profileExportList.length > 20) {

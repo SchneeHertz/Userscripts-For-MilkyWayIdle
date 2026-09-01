@@ -1,5 +1,5 @@
-const THOUSAND_SEPERATOR = new Intl.NumberFormat().format(1111).replaceAll("1", "").at(0) || "";
-const DECIMAL_SEPERATOR = new Intl.NumberFormat().format(1.1).replaceAll("1", "").at(0);
+const THOUSAND_SEPERATOR = new Intl.NumberFormat().format(1111).replaceAll("1", "").charAt(0) || "";
+const DECIMAL_SEPERATOR = new Intl.NumberFormat().format(1.1).replaceAll("1", "").charAt(0);
 
 const isZHInGameSetting = Boolean(localStorage.getItem("i18nextLng")?.toLowerCase()?.startsWith("zh")); // 获取游戏内设置语言
 let isZH: boolean = isZHInGameSetting; // MWITools 本身显示的语言默认由游戏内设置语言决定
@@ -134,47 +134,61 @@ const settingsMap: Record<string, ScriptSetting> = {
 readSettings();
 
 /* 脚本设置面板 */
-const waitForSettings = () => {
+function tryInsertSettingsPanel(): boolean {
     const targetNode = document.querySelector("div.SettingsPanel_profileTab__214Bj");
-    if (targetNode) {
-        if (!targetNode.querySelector("#script_settings")) {
-            targetNode.insertAdjacentHTML("beforeend", `<div id="script_settings"></div>`);
-            const insertElem = targetNode.querySelector("div#script_settings");
-            insertElem.insertAdjacentHTML(
-                "beforeend",
-                `<div style="float: left; color: ${SCRIPT_COLOR_MAIN}">${
-                    isZH ? "MWITools 设置 （刷新生效）：" : "MWITools Settings (refresh page to apply): "
-                }</div></br>`
-            );
-
-            for (const setting of Object.values(settingsMap)) {
-                insertElem.insertAdjacentHTML(
-                    "beforeend",
-                    `<div style="float: left;"><input type="checkbox" id="${setting.id}" ${setting.isTrue ? "checked" : ""}></input>${
-                        setting.desc
-                    }</div></br>`
-                );
-            }
-
-            insertElem.insertAdjacentHTML(
-                "beforeend",
-                `<div style="float: left;">${
-                    isZH
-                        ? "代码里搜索“自定义”可以手动修改字体颜色"
-                        : `Search "Customization" in code to customize font colors.`
-                }</div></br>`
-            );
-            insertElem.addEventListener("change", saveSettings);
-        }
+    if (!targetNode) {
+        return false;
     }
-    setTimeout(waitForSettings, 500);
+    if (targetNode.querySelector("#script_settings")) {
+        return true;
+    }
+    targetNode.insertAdjacentHTML("beforeend", `<div id="script_settings"></div>`);
+    const insertElem = targetNode.querySelector("div#script_settings")!;
+    insertElem.insertAdjacentHTML(
+        "beforeend",
+        `<div style="float: left; color: ${SCRIPT_COLOR_MAIN}">${
+            isZH ? "MWITools 设置 （刷新生效）：" : "MWITools Settings (refresh page to apply): "
+        }</div></br>`
+    );
+
+    for (const setting of Object.values(settingsMap)) {
+        insertElem.insertAdjacentHTML(
+            "beforeend",
+            `<div style="float: left;"><input type="checkbox" id="${setting.id}" ${setting.isTrue ? "checked" : ""}></input>${
+                setting.desc
+            }</div></br>`
+        );
+    }
+
+    insertElem.insertAdjacentHTML(
+        "beforeend",
+        `<div style="float: left;">${
+            isZH
+                ? "代码里搜索“自定义”可以手动修改字体颜色"
+                : `Search "Customization" in code to customize font colors.`
+        }</div></br>`
+    );
+    insertElem.addEventListener("change", saveSettings);
+    return true;
+}
+
+const waitForSettings = () => {
+    if (tryInsertSettingsPanel()) {
+        return;
+    }
+    const observer = new MutationObserver(() => {
+        if (tryInsertSettingsPanel()) {
+            observer.disconnect();
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
 };
 
 function saveSettings() {
     for (const checkbox of document.querySelectorAll<HTMLInputElement>("div#script_settings input")) {
         settingsMap[checkbox.id].isTrue = checkbox.checked;
-        localStorage.setItem("script_settingsMap", JSON.stringify(settingsMap));
     }
+    localStorage.setItem("script_settingsMap", JSON.stringify(settingsMap));
 }
 
 function readSettings() {

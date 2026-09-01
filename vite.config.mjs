@@ -12,7 +12,7 @@ const temporaryOutputDirectory = path.join(projectDirectory, "temp", "vite-build
 export default defineConfig({
     plugins: [userscriptBundlePlugin({ sourceDirectory, outputFileName, installableOutputPath })],
     build: {
-        target: "esnext",
+        target: "es2020",
         outDir: temporaryOutputDirectory,
         emptyOutDir: false,
         copyPublicDir: false,

@@ -2,16 +2,16 @@
 const waitForMarketOrders = () => {
     const element = document.querySelector(".MarketplacePanel_marketListings__1GCyQ");
     if (element) {
-        console.log("start observe market order");
-        new MutationObserver((mutationsList) => {
-            mutationsList.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.classList.contains("Modal_modalContainer__3B80m")) {
+        const observer = new MutationObserver((mutationsList) => {
+            for (const mutation of mutationsList) {
+                for (const node of mutation.addedNodes) {
+                    if (node.classList?.contains("Modal_modalContainer__3B80m")) {
                         handleMarketNewOrder(node);
                     }
-                });
-            });
-        }).observe(element, {
+                }
+            }
+        });
+        observer.observe(element, {
             characterData: false,
             subtree: false,
             childList: true,

@@ -24,9 +24,14 @@ function handleActionQueueMenue(added) {
     handleActionQueueMenueCalculateTime(added);
 
     const listDiv = added.querySelector(".QueuedActions_actions__2Lur6");
-    new MutationObserver((mutationsList) => {
+    const observer = new MutationObserver(() => {
+        if (!added.isConnected) {
+            observer.disconnect();
+            return;
+        }
         handleActionQueueMenueCalculateTime(added);
-    }).observe(listDiv, { characterData: false, subtree: false, childList: true });
+    });
+    observer.observe(listDiv, { characterData: false, subtree: false, childList: true });
 }
 
 function handleActionQueueMenueCalculateTime(added) {
@@ -35,7 +40,7 @@ function handleActionQueueMenueCalculateTime(added) {
         return;
     }
     if (actionDivList.length !== currentActionsHridList.length - 1) {
-        console.error("handleActionQueueTooltip action queue length inconsistency");
+        console.warn("handleActionQueueTooltip action queue length inconsistency");
         return;
     }
 
@@ -52,7 +57,10 @@ function handleActionQueueMenueCalculateTime(added) {
             isAccumulatedTimeInfinite = true;
         }
 
-        const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
+        const baseTimePerActionSec = initData_actionDetailMap?.[actionHrid]?.baseTimeCost / 1000000000;
+        if (!baseTimePerActionSec) {
+            continue;
+        }
         const totalEffBuff = getTotalEffiPercentage(actionHrid);
         const toolSpeedBuff = getToolsSpeedBuffByActionHrid(actionHrid);
 
@@ -73,7 +81,7 @@ function handleActionQueueMenueCalculateTime(added) {
 
         if (hasSkippedfirstActionObj) {
             const html = `<div class="script_actionTime" style="color: ${SCRIPT_COLOR_MAIN};">${
-                isInfinit ? "[ ∞ ] " : `[${timeReadable(totalTimeSec)}]`
+                isInfinit ? "[ ∞ ] " : `[${formatDuration(totalTimeSec)}]`
             } ${str}</div>`;
             if (actionDivList[actionDivListIndex].querySelector("div div.script_actionTime")) {
                 actionDivList[actionDivListIndex].querySelector("div div.script_actionTime").innerHTML = html;
@@ -85,12 +93,12 @@ function handleActionQueueMenueCalculateTime(added) {
         hasSkippedfirstActionObj = true;
     }
     const html = `<div id="script_queueTotalTime" style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "总时间：" : "Total time: "}${
-        isAccumulatedTimeInfinite ? "[ ∞ ] " : `[${timeReadable(accumulatedTimeSec)}]`
+        isAccumulatedTimeInfinite ? "[ ∞ ] " : `[${formatDuration(accumulatedTimeSec)}]`
     }</div>`;
     if (document.querySelector("div#script_queueTotalTime")) {
-        document.querySelector("div#script_queueTotalTime").innerHTML = html;
+        document.querySelector("div#script_queueTotalTime")!.innerHTML = html;
     } else {
-        document.querySelector("div.QueuedActions_queuedActionsEditMenu__3OoQH").insertAdjacentHTML("afterend", html);
+        document.querySelector("div.QueuedActions_queuedActionsEditMenu__3OoQH")!.insertAdjacentHTML("afterend", html);
     }
 }
 

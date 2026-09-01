@@ -68,12 +68,19 @@ function getActionHridFromItemName(name) {
 }
 
 function getToolsSpeedBuffByActionHrid(actionHrid) {
+    const actionDetail = initData_actionDetailMap?.[actionHrid];
+    if (!actionDetail) {
+        return 0;
+    }
     let totalBuff = 0;
-    for (const item of initData_characterItems) {
+    for (const item of initData_characterItems ?? []) {
         if (item.itemLocationHrid.includes("_tool")) {
-            const buffName = actionHridToToolsSpeedBuffNamesMap[initData_actionDetailMap[actionHrid].type];
-            const enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] / 100;
-            const buff = initData_itemDetailMap[item.itemHrid].equipmentDetail.noncombatStats[buffName] || 0;
+            const buffName = actionHridToToolsSpeedBuffNamesMap[actionDetail.type];
+            if (!buffName) {
+                continue;
+            }
+            const enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] ?? 0) / 100;
+            const buff = initData_itemDetailMap?.[item.itemHrid]?.equipmentDetail?.noncombatStats?.[buffName] || 0;
             totalBuff += buff * enhanceBonus;
         }
     }
@@ -81,32 +88,37 @@ function getToolsSpeedBuffByActionHrid(actionHrid) {
 }
 
 function getItemEffiBuffByActionHrid(actionHrid) {
+    const actionDetail = initData_actionDetailMap?.[actionHrid];
+    if (!actionDetail?.type) {
+        return 0;
+    }
     let buff = 0;
-    const propertyName = initData_actionDetailMap[actionHrid].type.replace("/action_types/", "") + "Efficiency";
-    for (const item of initData_characterItems) {
+    const propertyName = actionDetail.type.replace("/action_types/", "") + "Efficiency";
+    for (const item of initData_characterItems ?? []) {
         if (item.itemLocationHrid === "/item_locations/inventory") {
             continue;
         }
-        const itemDetail = initData_itemDetailMap[item.itemHrid];
+        const itemDetail = initData_itemDetailMap?.[item.itemHrid];
+        const noncombatStats = itemDetail?.equipmentDetail?.noncombatStats;
 
-        const specificStat = itemDetail?.equipmentDetail?.noncombatStats[propertyName];
+        const specificStat = noncombatStats?.[propertyName];
         if (specificStat && specificStat > 0) {
             let enhanceBonus = 1;
             if (item.itemLocationHrid.includes("earrings") || item.itemLocationHrid.includes("ring") || item.itemLocationHrid.includes("neck")) {
-                enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] * 5) / 100;
+                enhanceBonus = 1 + ((itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] ?? 0) * 5) / 100;
             } else {
-                enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] / 100;
+                enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] ?? 0) / 100;
             }
             buff += specificStat * enhanceBonus;
         }
 
-        const skillingStat = itemDetail?.equipmentDetail?.noncombatStats["skillingEfficiency"];
+        const skillingStat = noncombatStats?.["skillingEfficiency"];
         if (skillingStat && skillingStat > 0) {
             let enhanceBonus = 1;
             if (item.itemLocationHrid.includes("earrings") || item.itemLocationHrid.includes("ring") || item.itemLocationHrid.includes("neck")) {
-                enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] * 5) / 100;
+                enhanceBonus = 1 + ((itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] ?? 0) * 5) / 100;
             } else {
-                enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] / 100;
+                enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] ?? 0) / 100;
             }
             buff += skillingStat * enhanceBonus;
         }
@@ -115,11 +127,11 @@ function getItemEffiBuffByActionHrid(actionHrid) {
 }
 
 function getHousesEffBuffByActionHrid(actionHrid) {
-    const houseName = actionHridToHouseNamesMap[initData_actionDetailMap[actionHrid].type];
+    const houseName = actionHridToHouseNamesMap[initData_actionDetailMap?.[actionHrid]?.type];
     if (!houseName) {
         return 0;
     }
-    const house = initData_characterHouseRoomMap[houseName];
+    const house = initData_characterHouseRoomMap?.[houseName];
     if (!house) {
         return 0;
     }
@@ -135,14 +147,14 @@ function getTeaBuffsByActionHrid(actionHrid) {
         upgradedProduct: 0, // Processing tea. Not used.
     };
 
-    const actionTypeId = initData_actionDetailMap[actionHrid].type;
-    const teaList = initData_actionTypeDrinkSlotsMap[actionTypeId];
+    const actionTypeId = initData_actionDetailMap?.[actionHrid]?.type;
+    const teaList = initData_actionTypeDrinkSlotsMap?.[actionTypeId] ?? [];
     for (const tea of teaList) {
         if (!tea || !tea.itemHrid) {
             continue;
         }
 
-        for (const buff of initData_itemDetailMap[tea.itemHrid].consumableDetail.buffs) {
+        for (const buff of initData_itemDetailMap?.[tea.itemHrid]?.consumableDetail?.buffs ?? []) {
             if (buff.typeHrid === "/buff_types/artisan") {
                 teaBuffs.lessResource += buff.flatBoost * 100;
             } else if (buff.typeHrid === "/buff_types/action_level") {

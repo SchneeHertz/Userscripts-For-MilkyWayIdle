@@ -2,7 +2,6 @@
 const waitForActionPanelParent = () => {
     const targetNode = document.querySelector("div.GamePage_mainPanel__2njyb");
     if (targetNode) {
-        console.log("start observe action panel");
         const actionPanelObserver = new MutationObserver(async function (mutations) {
             for (const mutation of mutations) {
                 for (const added of mutation.addedNodes) {
@@ -49,7 +48,13 @@ async function handleActionPanel(panel) {
     );
     const inputElem = panel.querySelector("div.SkillActionDetail_maxActionCountInput__1C0Pw input");
 
-    const actionHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].hrid;
+    const actionNameHrid = getActionHridFromItemName(actionName);
+    const actionDetail = actionNameHrid ? initData_actionDetailMap?.[actionNameHrid] : null;
+    if (!actionDetail) {
+        console.error("handleActionPanel unable to find action detail for " + actionName);
+        return;
+    }
+    const actionHrid = actionDetail.hrid;
     const effBuff = 1 + getTotalEffiPercentage(actionHrid, false) / 100;
 
     // 显示总时间
@@ -121,10 +126,10 @@ async function handleActionPanel(panel) {
     }
 
     // 还有多久到多少技能等级
-    const skillHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].experienceGain.skillHrid;
-    let currentExp = null;
-    let currentLevel = null;
-    for (const skill of initData_characterSkills) {
+    const skillHrid = actionDetail.experienceGain.skillHrid;
+    let currentExp = 0;
+    let currentLevel = 0;
+    for (const skill of initData_characterSkills ?? []) {
         if (skill.skillHrid === skillHrid) {
             currentExp = skill.experience;
             currentLevel = skill.level;
@@ -133,14 +138,15 @@ async function handleActionPanel(panel) {
     }
     if (currentExp && currentLevel) {
         const calculateNeedToLevel = (currentLevel, targetLevel, effBuff, duration, exp) => {
+            const levelExperienceTable = initData_levelExperienceTable ?? [];
             let needTotalTimeSec = 0;
             let needTotalNumOfActions = 0;
             for (let level = currentLevel; level < targetLevel; level++) {
-                let needExpToNextLevel = null;
+                let needExpToNextLevel: number = 0;
                 if (level === currentLevel) {
-                    needExpToNextLevel = initData_levelExperienceTable[level + 1] - currentExp;
+                    needExpToNextLevel = levelExperienceTable[level + 1] - currentExp;
                 } else {
-                    needExpToNextLevel = initData_levelExperienceTable[level + 1] - initData_levelExperienceTable[level];
+                    needExpToNextLevel = levelExperienceTable[level + 1] - levelExperienceTable[level];
                 }
                 const extraLevelEffBuff = (level - currentLevel) * 0.01; // 升级过程中，每升一级，额外多1%效率
                 const needNumOfActionsToNextLevel = Math.round(needExpToNextLevel / exp);
@@ -155,7 +161,7 @@ async function handleActionPanel(panel) {
             isZH ? "到 " : "To reach level "
         }<input id="tillLevelInput" type="number" value="${currentLevel + 1}" min="${currentLevel + 1}" max="200">${
             isZH ? " 级还需做 " : ", need to do "
-        }<span id="tillLevelNumber">${need.numOfActions}${isZH ? " 次" : " times "}[${timeReadable(need.timeSec)}]${
+        }<span id="tillLevelNumber">${need.numOfActions}${isZH ? " 次" : " times "}[${formatDuration(need.timeSec)}]${
             isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"
         }</span></div>`;
 
@@ -166,7 +172,7 @@ async function handleActionPanel(panel) {
             const targetLevel = Number(tillLevelInput.value);
             if (targetLevel > currentLevel && targetLevel <= 200) {
                 const need = calculateNeedToLevel(currentLevel, targetLevel, effBuff, duration, exp);
-                tillLevelNumber.textContent = `${need.numOfActions}${isZH ? " 次" : " times "}[${timeReadable(need.timeSec)}]${
+                tillLevelNumber.textContent = `${need.numOfActions}${isZH ? " 次" : " times "}[${formatDuration(need.timeSec)}]${
                     isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"
                 }`;
             } else {
@@ -177,7 +183,7 @@ async function handleActionPanel(panel) {
             const targetLevel = Number(tillLevelInput.value);
             if (targetLevel > currentLevel && targetLevel <= 200) {
                 const need = calculateNeedToLevel(currentLevel, targetLevel, effBuff, duration, exp);
-                tillLevelNumber.textContent = `${need.numOfActions}${isZH ? " 次" : " times "}[${timeReadable(need.timeSec)}]${
+                tillLevelNumber.textContent = `${need.numOfActions}${isZH ? " 次" : " times "}[${formatDuration(need.timeSec)}]${
                     isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"
                 }`;
             } else {
@@ -202,11 +208,15 @@ function getTotalEffiPercentage(actionHrid, debug = false) {
     if (debug) {
         console.log("----- getTotalEffiPercentage " + actionHrid);
     }
+    const actionDetail = initData_actionDetailMap?.[actionHrid];
+    if (!actionDetail) {
+        return 0;
+    }
     // 等级碾压效率
-    const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
+    const requiredLevel = actionDetail.levelRequirement.level;
     let currentLevel = requiredLevel;
-    for (const skill of initData_characterSkills) {
-        if (skill.skillHrid === initData_actionDetailMap[actionHrid].levelRequirement.skillHrid) {
+    for (const skill of initData_characterSkills ?? []) {
+        if (skill.skillHrid === actionDetail.levelRequirement.skillHrid) {
             currentLevel = skill.level;
             break;
         }
@@ -244,7 +254,7 @@ function getTotalTimeStr(input, duration, effBuff) {
     } else if (isNaN(input)) {
         return "Error";
     }
-    return "[" + timeReadable(Math.round(input / effBuff) * duration) + "]";
+    return "[" + formatDuration(Math.round(input / effBuff) * duration) + "]";
 }
 
 function reactInputTriggerHack(inputElem, value) {

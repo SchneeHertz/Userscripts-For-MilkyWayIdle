@@ -1,22 +1,20 @@
 /* 为 https://amvoidguy.github.io/MWICombatSimulatorTest/ 添加导入按钮 */
-// Parts of code regarding group export are by Ratatatata (https://greasyfork.org/en/scripts/507255).
+// Parts of code regarding group export are by Ratatatata (https://greasyfork.org/en/scripts/507255)。
 function addImportButtonForAmvoidguy() {
     const checkElem = () => {
         const selectedElement = document.querySelector(`button#buttonImportExport`);
         if (selectedElement) {
             clearInterval(timer);
             let button = document.createElement("button");
-            selectedElement.parentNode.parentElement.parentElement.insertBefore(button, selectedElement.parentElement.parentElement.nextSibling);
+            selectedElement.parentNode!.parentElement!.parentElement!.insertBefore(button, selectedElement.parentElement!.parentElement!.nextSibling);
             button.textContent = isZH
                 ? "单人/组队导入(刷新游戏网页更新人物数据)"
                 : "Import solo/group (Refresh game page to update character set)";
             button.style.backgroundColor = SCRIPT_COLOR_MAIN;
             button.style.padding = "5px";
             button.onclick = function () {
-                console.log("Importer: Import button onclick");
                 const getPriceButton = document.querySelector(`button#buttonGetPrices`);
                 if (getPriceButton) {
-                    console.log("Click getPriceButton");
                     getPriceButton.click();
                 }
                 importDataForAmvoidguy(button);
@@ -28,27 +26,30 @@ function addImportButtonForAmvoidguy() {
 }
 
 async function importDataForAmvoidguy(button) {
-    const [exportObj, playerIDs, importedPlayerPositions, zone, difficultyTier, isZoneDungeon, isParty] = constructGroupExportObj();
-    console.log(exportObj);
-    console.log(playerIDs);
+    const result = constructGroupExportObj();
+    if (!result) {
+        button.textContent = isZH ? "错误：请先打开游戏页面" : "Error: Open game page first";
+        return;
+    }
+    const [exportObj, playerIDs, importedPlayerPositions, zone, difficultyTier, isZoneDungeon, isParty] = result;
 
-    document.querySelector(`a#group-combat-tab`).click();
-    const importInputElem = document.querySelector(`input#inputSetGroupCombatAll`);
+    document.querySelector(`a#group-combat-tab`)!.click();
+    const importInputElem = document.querySelector(`input#inputSetGroupCombatAll`)!;
     importInputElem.value = JSON.stringify(exportObj);
-    document.querySelector(`button#buttonImportSet`).click();
+    document.querySelector(`button#buttonImportSet`)!.click();
 
-    document.querySelector(`a#player1-tab`).textContent = playerIDs[0];
-    document.querySelector(`a#player2-tab`).textContent = playerIDs[1];
-    document.querySelector(`a#player3-tab`).textContent = playerIDs[2];
-    document.querySelector(`a#player4-tab`).textContent = playerIDs[3];
-    document.querySelector(`a#player5-tab`).textContent = playerIDs[4];
+    document.querySelector(`a#player1-tab`)!.textContent = playerIDs[0];
+    document.querySelector(`a#player2-tab`)!.textContent = playerIDs[1];
+    document.querySelector(`a#player3-tab`)!.textContent = playerIDs[2];
+    document.querySelector(`a#player4-tab`)!.textContent = playerIDs[3];
+    document.querySelector(`a#player5-tab`)!.textContent = playerIDs[4];
 
     // Select zone or dungeon
     if (zone) {
         if (isZoneDungeon) {
-            document.querySelector(`input#simDungeonToggle`).checked = true;
-            document.querySelector(`input#simDungeonToggle`).dispatchEvent(new Event("change"));
-            const selectDungeon = document.querySelector(`select#selectDungeon`);
+            document.querySelector(`input#simDungeonToggle`)!.checked = true;
+            document.querySelector(`input#simDungeonToggle`)!.dispatchEvent(new Event("change"));
+            const selectDungeon = document.querySelector(`select#selectDungeon`)!;
             for (let i = 0; i < selectDungeon.options.length; i++) {
                 if (selectDungeon.options[i].value === zone) {
                     selectDungeon.options[i].selected = true;
@@ -56,9 +57,9 @@ async function importDataForAmvoidguy(button) {
                 }
             }
         } else {
-            document.querySelector(`input#simDungeonToggle`).checked = false;
-            document.querySelector(`input#simDungeonToggle`).dispatchEvent(new Event("change"));
-            const selectZone = document.querySelector(`select#selectZone`);
+            document.querySelector(`input#simDungeonToggle`)!.checked = false;
+            document.querySelector(`input#simDungeonToggle`)!.dispatchEvent(new Event("change"));
+            const selectZone = document.querySelector(`select#selectZone`)!;
             for (let i = 0; i < selectZone.options.length; i++) {
                 if (selectZone.options[i].value === zone) {
                     selectZone.options[i].selected = true;
@@ -68,9 +69,9 @@ async function importDataForAmvoidguy(button) {
         }
 
         if (difficultyTier) {
-            const selectDifficulty = document.querySelector(`select#selectDifficulty`);
+            const selectDifficulty = document.querySelector(`select#selectDifficulty`)!;
             for (let i = 0; i < selectDifficulty.options.length; i++) {
-                if  (Number(selectDifficulty.options[i].value) === difficultyTier) {
+                if (Number(selectDifficulty.options[i].value) === difficultyTier) {
                     selectDifficulty.options[i].selected = true;
                     break;
                 }
@@ -80,16 +81,10 @@ async function importDataForAmvoidguy(button) {
 
     // Select sim players
     for (let i = 0; i < 5; i++) {
-        if (importedPlayerPositions[i]) {
-            if (document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`)) {
-                document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`).checked = true;
-                document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`).dispatchEvent(new Event("change"));
-            }
-        } else {
-            if (document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`)) {
-                document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`).checked = false;
-                document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`).dispatchEvent(new Event("change"));
-            }
+        const playerCheckbox = document.querySelector(`input#player${i + 1}.form-check-input.player-checkbox`);
+        if (playerCheckbox) {
+            playerCheckbox.checked = Boolean(importedPlayerPositions[i]);
+            playerCheckbox.dispatchEvent(new Event("change"));
         }
     }
 
@@ -99,21 +94,23 @@ async function importDataForAmvoidguy(button) {
     button.textContent = isZH ? "已导入" : "Imported";
     if (!isParty) {
         setTimeout(() => {
-            document.querySelector(`button#buttonStartSimulation`).click();
+            document.querySelector(`button#buttonStartSimulation`)!.click();
         }, 500);
     }
 }
 
 function constructGroupExportObj() {
-    const characterObj = JSON.parse(GM_getValue("init_character_data", ""));
-    const clientObj = JSON.parse(GM_getValue("init_client_data", ""));
-    let battleObj = null;
+    const characterObj = JSON.parse(GM_getValue("init_character_data", "null"));
+    const clientObj = JSON.parse(GM_getValue("init_client_data", "null"));
+    if (!characterObj || !clientObj) {
+        console.error("constructGroupExportObj: missing stored game data. Open the game page first.");
+        return null;
+    }
+    let battleObj: any = null;
     if (GM_getValue("new_battle", "")) {
         battleObj = JSON.parse(GM_getValue("new_battle", ""));
     }
-    // console.log(battleObj);
     const storedProfileList = JSON.parse(GM_getValue("profile_export_list", "[]"));
-    // console.log(storedProfileList);
 
     const BLANK_PLAYER_JSON = `{\"player\":{\"attackLevel\":1,\"magicLevel\":1,\"meleeLevel\":1,\"rangedLevel\":1,\"defenseLevel\":1,\"staminaLevel\":1,\"intelligenceLevel\":1,\"equipment\":[]},\"food\":{\"/action_types/combat\":[{\"itemHrid\":\"\"},{\"itemHrid\":\"\"},{\"itemHrid\":\"\"}]},\"drinks\":{\"/action_types/combat\":[{\"itemHrid\":\"\"},{\"itemHrid\":\"\"},{\"itemHrid\":\"\"}]},\"abilities\":[{\"abilityHrid\":\"\",\"level\":\"1\"},{\"abilityHrid\":\"\",\"level\":\"1\"},{\"abilityHrid\":\"\",\"level\":\"1\"},{\"abilityHrid\":\"\",\"level\":\"1\"},{\"abilityHrid\":\"\",\"level\":\"1\"}],\"triggerMap\":{},\"zone\":\"/actions/combat/fly\",\"simulationTime\":\"100\",\"houseRooms\":{\"/house_rooms/dairy_barn\":0,\"/house_rooms/garden\":0,\"/house_rooms/log_shed\":0,\"/house_rooms/forge\":0,\"/house_rooms/workshop\":0,\"/house_rooms/sewing_parlor\":0,\"/house_rooms/kitchen\":0,\"/house_rooms/brewery\":0,\"/house_rooms/laboratory\":0,\"/house_rooms/observatory\":0,\"/house_rooms/dining_room\":0,\"/house_rooms/library\":0,\"/house_rooms/dojo\":0,\"/house_rooms/gym\":0,\"/house_rooms/armory\":0,\"/house_rooms/archery_range\":0,\"/house_rooms/mystical_study\":0}}`;
 
@@ -136,11 +133,11 @@ function constructGroupExportObj() {
         playerIDs[0] = characterObj.character.name;
         importedPlayerPositions[0] = true;
         // Zone
-        for (const action of characterObj.characterActions) {
+        for (const action of characterObj.characterActions ?? []) {
             if (action && action.actionHrid.includes("/actions/combat/")) {
                 zone = action.actionHrid;
                 difficultyTier = action.difficultyTier;
-                isZoneDungeon = clientObj.actionDetailMap[action.actionHrid]?.combatZoneInfo?.isDungeon;
+                isZoneDungeon = clientObj.actionDetailMap?.[action.actionHrid]?.combatZoneInfo?.isDungeon;
                 break;
             }
         }
@@ -163,7 +160,7 @@ function constructGroupExportObj() {
                     }
                     const profile = profileList[0];
 
-                    const battlePlayerList = battleObj.players.filter((item) => item.character.id === member.characterID);
+                    const battlePlayerList = battleObj?.players?.filter((item) => item.character.id === member.characterID) ?? [];
                     let battlePlayer = null;
                     if (battlePlayerList.length === 1) {
                         battlePlayer = battlePlayerList[0];
@@ -180,12 +177,11 @@ function constructGroupExportObj() {
         // Zone
         zone = characterObj.partyInfo?.party?.actionHrid;
         difficultyTier = characterObj.partyInfo?.party?.difficultyTier;
-        isZoneDungeon = clientObj.actionDetailMap[zone]?.combatZoneInfo?.isDungeon;
+        isZoneDungeon = clientObj.actionDetailMap?.[zone]?.combatZoneInfo?.isDungeon;
     }
 
     return [exportObj, playerIDs, importedPlayerPositions, zone, difficultyTier, isZoneDungeon, isParty];
 }
-
 
 async function observeResultsForAmvoidguy() {
     let resultDiv = document.querySelector(`div.row`)?.querySelectorAll(`div.col-md-5`)?.[2]?.querySelector(`div.row > div.col-md-5`);
@@ -194,9 +190,9 @@ async function observeResultsForAmvoidguy() {
         resultDiv = document.querySelector(`div.row`)?.querySelectorAll(`div.col-md-5`)?.[2]?.querySelector(`div.row > div.col-md-5`);
     }
 
-    const deathDiv = document.querySelector(`div#simulationResultPlayerDeaths`);
-    const expDiv = document.querySelector(`div#simulationResultExperienceGain`);
-    const consumeDiv = document.querySelector(`div#simulationResultConsumablesUsed`);
+    const deathDiv = document.querySelector(`div#simulationResultPlayerDeaths`)!;
+    const expDiv = document.querySelector(`div#simulationResultExperienceGain`)!;
+    const consumeDiv = document.querySelector(`div#simulationResultConsumablesUsed`)!;
     deathDiv.style.backgroundColor = "#FFEAE9";
     deathDiv.style.color = "black";
     expDiv.style.backgroundColor = "#CDFFDD";
@@ -220,10 +216,21 @@ async function observeResultsForAmvoidguy() {
     }).observe(expDiv, { childList: true, subtree: true });
 }
 
+function getStoredLevelExperienceTable(): Record<number, number> {
+    let table: any = {};
+    try {
+        const clientObj = JSON.parse(GM_getValue("init_client_data", "null"));
+        table = clientObj?.levelExperienceTable ?? {};
+    } catch {
+        table = {};
+    }
+    return table;
+}
+
 function handleResultForAmvoidguy(expNodes, parentDiv) {
     const isZHIn3rdPartyWebsites = localStorage.getItem("i18nextLng")?.toLowerCase()?.startsWith("zh");
 
-    let perHourGainExp = {
+    let perHourGainExp: Record<string, number> = {
         stamina: 0,
         intelligence: 0,
         attack: 0,
@@ -233,92 +240,43 @@ function handleResultForAmvoidguy(expNodes, parentDiv) {
         magic: 0,
     };
 
-    expNodes.forEach((expNode) => {
+    for (const expNode of expNodes) {
         if (getOriTextFromElement(expNode.children[0]).includes("Stamina") || getOriTextFromElement(expNode.children[0]).includes("耐力")) {
             perHourGainExp.stamina = Number(expNode.children[1].textContent);
-        } else if (
-            getOriTextFromElement(expNode.children[0]).includes("Intelligence") ||
-            getOriTextFromElement(expNode.children[0]).includes("智力")
-        ) {
+        } else if (getOriTextFromElement(expNode.children[0]).includes("Intelligence") || getOriTextFromElement(expNode.children[0]).includes("智力")) {
             perHourGainExp.intelligence = Number(expNode.children[1].textContent);
         } else if (getOriTextFromElement(expNode.children[0]).includes("Attack") || getOriTextFromElement(expNode.children[0]).includes("攻击")) {
             perHourGainExp.attack = Number(expNode.children[1].textContent);
         } else if (getOriTextFromElement(expNode.children[0]).includes("Melee") || getOriTextFromElement(expNode.children[0]).includes("近战")) {
             perHourGainExp.melee = Number(expNode.children[1].textContent);
-        } else if (
-            getOriTextFromElement(expNode.children[0]).includes("Defense") ||
-            getOriTextFromElement(expNode.children[0]).includes("防御")
-        ) {
+        } else if (getOriTextFromElement(expNode.children[0]).includes("Defense") || getOriTextFromElement(expNode.children[0]).includes("防御")) {
             perHourGainExp.defense = Number(expNode.children[1].textContent);
         } else if (getOriTextFromElement(expNode.children[0]).includes("Ranged") || getOriTextFromElement(expNode.children[0]).includes("远程")) {
             perHourGainExp.ranged = Number(expNode.children[1].textContent);
         } else if (getOriTextFromElement(expNode.children[0]).includes("Magic") || getOriTextFromElement(expNode.children[0]).includes("魔法")) {
             perHourGainExp.magic = Number(expNode.children[1].textContent);
         }
-    });
+    }
 
-    let data = GM_getValue("init_character_data", null);
-    let obj = JSON.parse(data);
-    if (!obj || !obj.characterSkills || !obj.currentTimestamp) {
+    let obj = JSON.parse(GM_getValue("init_character_data", "null"));
+    if (!obj || !obj.characterSkills) {
         console.error("handleResult no character localstorage");
         return;
     }
 
-    let skillLevels: any = {};
-    for (const skill of obj.characterSkills) {
-        if (skill.skillHrid.includes("stamina")) {
-            skillLevels.stamina = {};
-            skillLevels.stamina.skillName = "Stamina";
-            skillLevels.stamina.skillZhName = "耐力";
-            skillLevels.stamina.currentLevel = skill.level;
-            skillLevels.stamina.currentExp = skill.experience;
-        } else if (skill.skillHrid.includes("intelligence")) {
-            skillLevels.intelligence = {};
-            skillLevels.intelligence.skillName = "Intelligence";
-            skillLevels.intelligence.skillZhName = "智力";
-            skillLevels.intelligence.currentLevel = skill.level;
-            skillLevels.intelligence.currentExp = skill.experience;
-        } else if (skill.skillHrid.includes("attack")) {
-            skillLevels.attack = {};
-            skillLevels.attack.skillName = "Attack";
-            skillLevels.attack.skillZhName = "攻击";
-            skillLevels.attack.currentLevel = skill.level;
-            skillLevels.attack.currentExp = skill.experience;
-        } else if (skill.skillHrid.includes("melee")) {
-            skillLevels.melee = {};
-            skillLevels.melee.skillName = "Melee";
-            skillLevels.melee.skillZhName = "近战";
-            skillLevels.melee.currentLevel = skill.level;
-            skillLevels.melee.currentExp = skill.experience;
-        } else if (skill.skillHrid.includes("defense")) {
-            skillLevels.defense = {};
-            skillLevels.defense.skillName = "Defense";
-            skillLevels.defense.skillZhName = "防御";
-            skillLevels.defense.currentLevel = skill.level;
-            skillLevels.defense.currentExp = skill.experience;
-        } else if (skill.skillHrid.includes("ranged")) {
-            skillLevels.ranged = {};
-            skillLevels.ranged.skillName = "Ranged";
-            skillLevels.ranged.skillZhName = "远程";
-            skillLevels.ranged.currentLevel = skill.level;
-            skillLevels.ranged.currentExp = skill.experience;
-        } else if (skill.skillHrid.includes("magic")) {
-            skillLevels.magic = {};
-            skillLevels.magic.skillName = "Magic";
-            skillLevels.magic.skillZhName = "魔法";
-            skillLevels.magic.currentLevel = skill.level;
-            skillLevels.magic.currentExp = skill.experience;
-        }
-    }
+    const skillLevels = buildCombatSkillLevels(obj.characterSkills);
 
-    const skillNamesInOrder = ["stamina", "intelligence", "attack", "melee", "defense", "ranged", "magic"];
     let hTMLStr = "";
-    for (const skill of skillNamesInOrder) {
+    for (const skill of COMBAT_SKILL_HRIDS) {
+        const skillInfo = skillLevels[skill];
+        if (!skillInfo) {
+            continue;
+        }
         hTMLStr += `<div id="${"inputDiv_" + skill}" style="display: flex; justify-content: flex-end">${
-            isZHIn3rdPartyWebsites ? skillLevels[skill].skillZhName : skillLevels[skill].skillName
+            isZHIn3rdPartyWebsites ? skillInfo.skillZhName : skillInfo.skillName
         }${isZHIn3rdPartyWebsites ? "到" : " to level "}<input id="${"input_" + skill}" type="number" value="${
-            skillLevels[skill].currentLevel + 1
-        }" min="${skillLevels[skill].currentLevel + 1}" max="200">${isZHIn3rdPartyWebsites ? "级" : ""}</div>`;
+            skillInfo.currentLevel + 1
+        }" min="${skillInfo.currentLevel + 1}" max="200">${isZHIn3rdPartyWebsites ? "级" : ""}</div>`;
     }
 
     hTMLStr += `<div id="script_afterDays" style="display: flex; justify-content: flex-end"><input id="script_afterDays_input" type="number" value="1" min="0" max="200">${
@@ -329,7 +287,11 @@ function handleResultForAmvoidguy(expNodes, parentDiv) {
     hTMLStr += `<div id="needListDiv"></div>`;
     parentDiv.innerHTML = hTMLStr;
 
-    for (const skill of skillNamesInOrder) {
+    for (const skill of COMBAT_SKILL_HRIDS) {
+        const skillInfo = skillLevels[skill];
+        if (!skillInfo) {
+            continue;
+        }
         const skillDiv = parentDiv.querySelector(`div#${"inputDiv_" + skill}`);
         const skillInput = parentDiv.querySelector(`input#${"input_" + skill}`);
         skillInput.onchange = () => {
@@ -346,80 +308,91 @@ function handleResultForAmvoidguy(expNodes, parentDiv) {
     const daysAfterDiv = parentDiv.querySelector(`div#script_afterDays`);
     const daysAfterInput = parentDiv.querySelector(`input#script_afterDays_input`);
     daysAfterInput.onchange = () => {
-        calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
+        calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
     };
     daysAfterInput.addEventListener("keyup", function (evt) {
-        calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
+        calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
     });
     daysAfterDiv.onclick = () => {
-        calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
+        calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
     };
 
     // 提取成本和收益
-    const expensesSpan = document.querySelector(`span#expensesSpan`);
-    const revenueSpan = document.querySelector(`span#revenueSpan`);
-    const profitSpan = document.querySelector(`span#profitPreview`);
+    const expensesSpan = document.querySelector(`span#expensesSpan`)!;
+    const revenueSpan = document.querySelector(`span#revenueSpan`)!;
+    const profitSpan = document.querySelector(`span#profitPreview`)!;
     const expenseDiv = document.querySelector(`div#script_expense`);
     const revenueDiv = document.querySelector(`div#script_revenue`);
-    if (expenseDiv && expenseDiv) {
-        expenseDiv.textContent = expensesSpan.parentNode.textContent;
-        revenueDiv.textContent = revenueSpan.parentNode.textContent;
+    if (expenseDiv && revenueDiv) {
+        expenseDiv.textContent = expensesSpan.parentNode!.textContent;
+        revenueDiv.textContent = revenueSpan.parentNode!.textContent;
     } else {
-        profitSpan.parentNode.insertAdjacentHTML(
+        profitSpan.parentNode!.insertAdjacentHTML(
             "beforeend",
-            `<div id="script_expense" style="background-color: #DCDCDC; color: black;">${expensesSpan.parentNode.textContent}</div><div id="script_revenue" style="background-color: #DCDCDC; color: black;">${revenueSpan.parentNode.textContent}</div>`
+            `<div id="script_expense" style="background-color: #DCDCDC; color: black;">${expensesSpan.parentNode!.textContent}</div><div id="script_revenue" style="background-color: #DCDCDC; color: black;">${revenueSpan.parentNode!.textContent}</div>`
         );
     }
 }
 
-function calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites) {
-    const initData_levelExperienceTable = JSON.parse(GM_getValue("init_client_data", null)).levelExperienceTable;
+function calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites) {
+    const initData_levelExperienceTable = getStoredLevelExperienceTable();
     const days = Number(daysAfterInput.value);
     parentDiv.querySelector(`div#needDiv`).textContent = `${isZHIn3rdPartyWebsites ? "" : "After"} ${days} ${
         isZHIn3rdPartyWebsites ? "天后：" : "days: "
     }`;
     const listDiv = parentDiv.querySelector(`div#needListDiv`);
+    if (!Object.keys(initData_levelExperienceTable).length) {
+        listDiv.innerHTML = isZHIn3rdPartyWebsites ? "缺少游戏数据" : "Missing game data";
+        return;
+    }
 
     let html = "";
     let resultLevels: any = {};
-    for (const skillName of skillNamesInOrder) {
-        for (const skill of Object.values(skillLevels)) {
-            if (skill.skillName.toLowerCase() === skillName.toLowerCase()) {
-                const exp = skill.currentExp + perHourGainExp[skill.skillName.toLowerCase()] * days * 24;
-                let level = 1;
-                while (initData_levelExperienceTable[level] < exp) {
-                    level++;
-                }
-                level--;
-                const minExpAtLevel = initData_levelExperienceTable[level];
-                const maxExpAtLevel = initData_levelExperienceTable[level + 1] - 1;
-                const expSpanInLevel = maxExpAtLevel - minExpAtLevel;
-                const levelPercentage = Number(((exp - minExpAtLevel) / expSpanInLevel) * 100).toFixed(1);
-                resultLevels[skillName.toLowerCase()] = level;
-                html += `<div>${isZHIn3rdPartyWebsites ? skill.skillZhName : skill.skillName} ${isZHIn3rdPartyWebsites ? "" : "level"} ${level} ${
-                    isZHIn3rdPartyWebsites ? "级" : ""
-                } ${levelPercentage}%</div>`;
-                break;
-            }
+    for (const skillName of COMBAT_SKILL_HRIDS) {
+        const skill = skillLevels[skillName];
+        if (!skill) {
+            continue;
         }
+        const exp = skill.currentExp + perHourGainExp[skillName] * days * 24;
+        let level = 1;
+        while (initData_levelExperienceTable[level] < exp) {
+            level++;
+        }
+        level--;
+        const minExpAtLevel = initData_levelExperienceTable[level];
+        const maxExpAtLevel = initData_levelExperienceTable[level + 1] - 1;
+        const expSpanInLevel = maxExpAtLevel - minExpAtLevel;
+        const levelPercentage = Number(((exp - minExpAtLevel) / expSpanInLevel) * 100).toFixed(1);
+        resultLevels[skillName] = level;
+        html += `<div>${isZHIn3rdPartyWebsites ? skill.skillZhName : skill.skillName} ${isZHIn3rdPartyWebsites ? "" : "level"} ${level} ${
+            isZHIn3rdPartyWebsites ? "级" : ""
+        } ${levelPercentage}%</div>`;
     }
     const combatLevel =
         0.1 * (resultLevels.stamina + resultLevels.intelligence + resultLevels.defense + resultLevels.attack + Math.max(resultLevels.melee, resultLevels.ranged, resultLevels.magic)) +
         0.5 * Math.max(resultLevels.attack, resultLevels.defense, resultLevels.melee, resultLevels.ranged, resultLevels.magic);
-    html += `<div>${isZHIn3rdPartyWebsites ? "战斗等级：" : "Combat level: "} ${combatLevel.toFixed(1)}</div>`;
+    html += `<div>${isZHIn3rdPartyWebsites ? "战斗等级：" : "Combat level: "} ${Number.isFinite(combatLevel) ? combatLevel.toFixed(1) : "N/A"}</div>`;
     listDiv.innerHTML = html;
 }
 
 function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites) {
-    const initData_levelExperienceTable = JSON.parse(GM_getValue("init_client_data", null)).levelExperienceTable;
+    const initData_levelExperienceTable = getStoredLevelExperienceTable();
     const targetLevel = Number(skillInputElem.value);
+    const skillInfo = skillLevels[skillName];
+    if (!skillInfo) {
+        return;
+    }
     parentDiv.querySelector(`div#needDiv`).textContent = `${
-        isZHIn3rdPartyWebsites ? skillLevels[skillName].skillZhName : skillLevels[skillName].skillName
+        isZHIn3rdPartyWebsites ? skillInfo.skillZhName : skillInfo.skillName
     } ${isZHIn3rdPartyWebsites ? "到" : "to level"} ${targetLevel} ${isZHIn3rdPartyWebsites ? "级 还需：" : " takes: "}`;
     const listDiv = parentDiv.querySelector(`div#needListDiv`);
+    if (!Object.keys(initData_levelExperienceTable).length) {
+        listDiv.innerHTML = isZHIn3rdPartyWebsites ? "缺少游戏数据" : "Missing game data";
+        return;
+    }
 
-    const currentLevel = Number(skillLevels[skillName].currentLevel);
-    const currentExp = Number(skillLevels[skillName].currentExp);
+    const currentLevel = Number(skillInfo.currentLevel);
+    const currentExp = Number(skillInfo.currentExp);
     if (targetLevel > currentLevel && targetLevel <= 200) {
         if (perHourGainExp[skillName] === 0) {
             listDiv.innerHTML = isZHIn3rdPartyWebsites ? "永远" : "Forever";
@@ -427,7 +400,7 @@ function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHou
             let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
             let needHours = needExp / perHourGainExp[skillName];
             let html = "";
-            html += `<div>[${hoursToReadableString(needHours)}]</div>`;
+            html += `<div>[${formatDuration(needHours * 3600)}]</div>`;
 
             const consumeDivs = document.querySelectorAll(`div#simulationResultConsumablesUsed div.row`);
             for (const elem of consumeDivs) {
@@ -442,18 +415,3 @@ function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHou
         listDiv.innerHTML = isZHIn3rdPartyWebsites ? "输入错误" : "Input error";
     }
 }
-
-
-function hoursToReadableString(hours) {
-    const sec = hours * 60 * 60;
-    if (sec >= 86400) {
-        return Number(sec / 86400).toFixed(1) + (isZH ? " 天" : " days");
-    }
-    const d = new Date(Math.round(sec * 1000));
-    function pad(i) {
-        return ("0" + i).slice(-2);
-    }
-    let str = d.getUTCHours() + "h " + pad(d.getUTCMinutes()) + "m " + pad(d.getUTCSeconds()) + "s";
-    return str;
-}
-

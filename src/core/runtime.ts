@@ -1,6 +1,5 @@
 let initData_characterSkills: any[] | null = null;
 let initData_characterItems: any[] | null = null;
-let initData_combatAbilities: any[] | null = null;
 let initData_characterHouseRoomMap: Record<string, any> | null = null;
 let initData_actionTypeDrinkSlotsMap: Record<string, any> | null = null;
 let initData_actionDetailMap: Record<string, any> | null = null;
@@ -8,11 +7,8 @@ let initData_levelExperienceTable: any[] | null = null;
 let initData_itemDetailMap: Record<string, any> | null = null;
 let initData_actionCategoryDetailMap: Record<string, any> | null = null;
 let initData_abilityDetailMap: Record<string, any> | null = null;
-let initData_characterAbilities: any[] | null = null;
-let initData_myMarketListings: any[] | null = null;
 
 let currentActionsHridList: any[] = [];
-let currentEquipmentMap: Record<string, any> = {};
 
 type MessageHandler = (payload: any, rawMessage: string) => void;
 
@@ -35,14 +31,19 @@ function restoreInitialClientData() {
     }
 
     const obj = localStorageUtil.getInitClientData();
-    console.log(obj);
-    GM_setValue("init_client_data", JSON.stringify(obj));
+    const json = JSON.stringify(obj);
+    if (GM_getValue("init_client_data", null) !== json) {
+        GM_setValue("init_client_data", json);
+    }
     applyClientData(obj);
 }
 
 function hookWebSocketMessages() {
     const dataProperty = Object.getOwnPropertyDescriptor(MessageEvent.prototype, "data");
-    const originalGetter = dataProperty.get;
+    const originalGetter = dataProperty?.get;
+    if (!dataProperty || !originalGetter) {
+        return;
+    }
 
     dataProperty.get = function hookedGet() {
         const socket = this.currentTarget;
@@ -68,7 +69,13 @@ function isGameWebSocket(url: string) {
 }
 
 function handleMessage(message: string) {
-    const obj: any = JSON.parse(message);
+    let obj: any = null;
+    try {
+        obj = JSON.parse(message);
+    } catch (error) {
+        console.warn("MWITools: unable to parse WS message", error);
+        return message;
+    }
     const handlers = messageHandlers.get(obj?.type) || [];
     for (const handler of handlers) {
         handler(obj, message);
@@ -89,27 +96,16 @@ function applyClientData(obj: any) {
 }
 
 function handleInitCharacterData(obj: any, message: string) {
-    console.log(obj);
     GM_setValue("init_character_data", message);
 
     initData_characterSkills = obj.characterSkills;
     initData_characterItems = obj.characterItems;
     initData_characterHouseRoomMap = obj.characterHouseRoomMap;
     initData_actionTypeDrinkSlotsMap = obj.actionTypeDrinkSlotsMap;
-    initData_characterAbilities = obj.characterAbilities;
-    initData_myMarketListings = obj.myMarketListings;
-    initData_combatAbilities = obj.combatUnit.combatAbilities;
     currentActionsHridList = [...obj.characterActions];
-
-    for (const item of obj.characterItems) {
-        if (item.itemLocationHrid !== "/item_locations/inventory") {
-            currentEquipmentMap[item.itemLocationHrid] = item;
-        }
-    }
 }
 
 function handleInitClientData(obj: any, message: string) {
-    console.log(obj);
     GM_setValue("init_client_data", message);
     applyClientData(obj);
 }
@@ -137,21 +133,7 @@ function handleActionCompleted(obj: any) {
     }
 }
 
-function handleItemsUpdated(obj: any) {
-    if (!obj.endCharacterItems) {
-        return;
-    }
-
-    for (const item of obj.endCharacterItems) {
-        if (item.itemLocationHrid === "/item_locations/inventory") {
-            continue;
-        }
-        currentEquipmentMap[item.itemLocationHrid] = item.count === 0 ? null : item;
-    }
-}
-
 registerMessageHandler("init_character_data", handleInitCharacterData);
 registerMessageHandler("init_client_data", handleInitClientData);
 registerMessageHandler("actions_updated", handleActionsUpdated);
 registerMessageHandler("action_completed", handleActionCompleted);
-registerMessageHandler("items_updated", handleItemsUpdated);
