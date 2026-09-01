@@ -80,13 +80,16 @@ function handleActionQueueMenueCalculateTime(added) {
         }
 
         if (hasSkippedfirstActionObj) {
+            const actionDiv = actionDivList[actionDivListIndex];
             const html = `<div class="script_actionTime" style="color: ${SCRIPT_COLOR_MAIN};">${
                 isInfinit ? "[ ∞ ] " : `[${formatDuration(totalTimeSec)}]`
             } ${str}</div>`;
-            if (actionDivList[actionDivListIndex].querySelector("div div.script_actionTime")) {
-                actionDivList[actionDivListIndex].querySelector("div div.script_actionTime").innerHTML = html;
+            const actionTimeDiv = actionDiv.querySelector("div.QueuedActions_actionText__3REPk div.script_actionTime");
+            if (actionTimeDiv) {
+                actionTimeDiv.innerHTML = html;
             } else {
-                actionDivList[actionDivListIndex].querySelector("div").insertAdjacentHTML("beforeend", html);
+                // 插入到条目文本下方，而不是拖拽手柄旁边（左边）
+                actionDiv.querySelector("div.QueuedActions_actionText__3REPk").insertAdjacentHTML("beforeend", html);
             }
             actionDivListIndex++;
         }

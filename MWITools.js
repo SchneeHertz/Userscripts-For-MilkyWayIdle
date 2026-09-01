@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      25.14
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows action number quick inputs. Shows how many actions are needed to reach a certain skill level. Shows skill exp percentages. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows queued action times. Shows DPS statistics. Notifies when idle. Links to third-party tools. Auto-fills the minimum market order price.
-// @author       bot7420, shykai
+// @author       bot7420, shykai, SchneeHertz
 // @license      CC-BY-NC-SA-4.0
 // @match        https://www.milkywayidle.com/*
 // @match        https://test.milkywayidle.com/*
@@ -275,6 +275,35 @@
 				currentExp: info.experience
 			};
 		});
+		return result;
+	}
+	const ACHIEVEMENT_TIER_UNLOCK_RATE = .5;
+	function getUnlockedAchievementTiers() {
+		if (!initData_characterAchievements) return [];
+		const tiers = Object.values(initData_achievementTierDetailMap ?? {}).sort((a, b) => a.sortIndex - b.sortIndex);
+		const achievements = Object.values(initData_achievementDetailMap ?? {});
+		const unlocked = [];
+		for (const tier of tiers) {
+			const tierAchievements = achievements.filter((a) => a.tierHrid === tier.hrid);
+			const total = tierAchievements.length;
+			if (!total) continue;
+			if (tierAchievements.filter((a) => initData_characterAchievements?.[a.hrid]?.isCompleted).length / total >= ACHIEVEMENT_TIER_UNLOCK_RATE) unlocked.push(tier);
+		}
+		return unlocked;
+	}
+	function getAchievementTierBuffsForAction(actionHrid) {
+		const actionDetail = initData_actionDetailMap?.[actionHrid];
+		if (!actionDetail?.type) return [];
+		const result = [];
+		for (const tier of getUnlockedAchievementTiers()) {
+			if (!tier.usableInActionTypeMap?.[actionDetail.type]) continue;
+			const buff = tier.buff;
+			const percent = (buff.ratioBoost ?? buff.flatBoost ?? 0) * 100;
+			result.push({
+				typeHrid: buff.typeHrid,
+				percent
+			});
+		}
 		return result;
 	}
 	const ZHItemNames = {
@@ -2182,11 +2211,14 @@
 	let initData_characterSkills = null;
 	let initData_characterItems = null;
 	let initData_characterHouseRoomMap = null;
+	let initData_characterAchievements = null;
 	let initData_actionTypeDrinkSlotsMap = null;
 	let initData_actionDetailMap = null;
 	let initData_levelExperienceTable = null;
 	let initData_itemDetailMap = null;
 	let initData_actionCategoryDetailMap = null;
+	let initData_achievementDetailMap = null;
+	let initData_achievementTierDetailMap = null;
 	let currentActionsHridList = [];
 	const messageHandlers = /* @__PURE__ */ new Map();
 	function registerMessageHandler(type, handler) {
@@ -2244,6 +2276,8 @@
 		initData_itemDetailMap = obj.itemDetailMap;
 		initData_actionCategoryDetailMap = obj.actionCategoryDetailMap;
 		obj.abilityDetailMap;
+		initData_achievementDetailMap = obj.achievementDetailMap;
+		initData_achievementTierDetailMap = obj.achievementTierDetailMap;
 		for (const [key, value] of Object.entries(initData_itemDetailMap)) itemEnNameToHridMap[value.name] = key;
 	}
 	function handleInitCharacterData(obj, message) {
@@ -2251,6 +2285,7 @@
 		initData_characterSkills = obj.characterSkills;
 		initData_characterItems = obj.characterItems;
 		initData_characterHouseRoomMap = obj.characterHouseRoomMap;
+		initData_characterAchievements = obj.characterAchievements;
 		initData_actionTypeDrinkSlotsMap = obj.actionTypeDrinkSlotsMap;
 		currentActionsHridList = [...obj.characterActions];
 	}
@@ -2619,7 +2654,8 @@
 				} else tillLevelNumber.textContent = "Error";
 			});
 		}
-		panel.querySelector("div#tillLevel").insertAdjacentHTML("afterend", `<div id="expPerHour" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${isZH ? "每小时经验: " : "Exp/hour: "}${numberFormatter(Math.round(3600 / duration * exp * effBuff))} (+${Number((effBuff - 1) * 100).toFixed(1)}%${isZH ? "效率" : " eff"})</div>`);
+		const achievementWisdomBuff = getAchievementTierBuffsForAction(actionHrid).filter((buff) => buff.typeHrid === "/buff_types/wisdom").reduce((sum, buff) => sum + buff.percent, 0);
+		panel.querySelector("div#tillLevel").insertAdjacentHTML("afterend", `<div id="expPerHour" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${isZH ? "每小时经验: " : "Exp/hour: "}${numberFormatter(Math.round(3600 / duration * exp * effBuff * (1 + achievementWisdomBuff / 100)))} (+${Number((effBuff - 1) * 100).toFixed(1)}%${isZH ? "效率" : " eff"}${achievementWisdomBuff ? ` / +${achievementWisdomBuff}%${isZH ? "成就经验" : " ach"}` : ""})</div>`);
 	}
 	function getTotalEffiPercentage(actionHrid, debug = false) {
 		if (debug) console.log("----- getTotalEffiPercentage " + actionHrid);
@@ -2639,7 +2675,9 @@
 		if (debug) console.log("茶 " + teaBuffs.efficiency);
 		const itemEffiBuff = getItemEffiBuffByActionHrid(actionHrid);
 		if (debug) console.log("特殊装备 " + itemEffiBuff);
-		const total = levelEffBuff + houseEffBuff + teaBuffs.efficiency + Number(itemEffiBuff);
+		const achievementEffBuff = getAchievementTierBuffsForAction(actionHrid).filter((buff) => buff.typeHrid === "/buff_types/efficiency").reduce((sum, buff) => sum + buff.percent, 0);
+		if (debug) console.log("成就 " + achievementEffBuff);
+		const total = levelEffBuff + houseEffBuff + teaBuffs.efficiency + Number(itemEffiBuff) + achievementEffBuff;
 		if (debug) console.log("总计 " + total);
 		return total;
 	}
@@ -2985,9 +3023,11 @@
 				str = `${isZH ? "到 " : "Complete at "}${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(currentTime.getSeconds()).padStart(2, "0")}`;
 			}
 			if (hasSkippedfirstActionObj) {
+				const actionDiv = actionDivList[actionDivListIndex];
 				const html = `<div class="script_actionTime" style="color: ${SCRIPT_COLOR_MAIN};">${isInfinit ? "[ ∞ ] " : `[${formatDuration(totalTimeSec)}]`} ${str}</div>`;
-				if (actionDivList[actionDivListIndex].querySelector("div div.script_actionTime")) actionDivList[actionDivListIndex].querySelector("div div.script_actionTime").innerHTML = html;
-				else actionDivList[actionDivListIndex].querySelector("div").insertAdjacentHTML("beforeend", html);
+				const actionTimeDiv = actionDiv.querySelector("div.QueuedActions_actionText__3REPk div.script_actionTime");
+				if (actionTimeDiv) actionTimeDiv.innerHTML = html;
+				else actionDiv.querySelector("div.QueuedActions_actionText__3REPk").insertAdjacentHTML("beforeend", html);
 				actionDivListIndex++;
 			}
 			hasSkippedfirstActionObj = true;
@@ -3401,10 +3441,11 @@
 		obj.monsters;
 		if (!totalDamage.length) totalDamage = new Array(players.length).fill(0);
 		for (const monster of obj.monsters) {
+			var _monsterEvasion;
 			const name = monster.name;
 			monsterHrids[name] = monster.hrid;
 			monsterCounts[name] = (monsterCounts[name] || 0) + 1;
-			monsterEvasion[name] ||= {};
+			(_monsterEvasion = monsterEvasion)[name] || (_monsterEvasion[name] = {});
 			for (const player of players) {
 				if (!player.combatDetails?.combatStats?.combatStyleHrids) continue;
 				for (const styleHrid of player.combatDetails.combatStats.combatStyleHrids) {
