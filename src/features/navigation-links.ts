@@ -45,9 +45,9 @@ function add3rdPartyLinks() {
             div = document.createElement("div");
             div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
             div.style.color = SCRIPT_COLOR_MAIN;
-            div.innerHTML = isZH ? "战斗模拟 shykai" : "Combat sim shykai";
+            div.innerHTML = isZH ? "战斗模拟 isosky" : "Combat sim isosky";
             div.addEventListener("click", () => {
-                window.open("https://shykai.github.io/MWICombatSimulatorTest/dist/", "_blank");
+                window.open("https://isosky.github.io/MWICombatSimulatorTest/", "_blank");
             });
             targetNode.insertAdjacentElement("afterbegin", div);
         } else {

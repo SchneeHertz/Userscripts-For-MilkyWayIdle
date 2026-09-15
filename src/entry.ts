@@ -1,9 +1,9 @@
 function initializeExternalTools() {
     const url = document.URL;
 
-    if (url.includes("amvoidguy.github.io") || url.includes("shykai.github.io/MWICombatSimulatorTest/")) {
-        addImportButtonForAmvoidguy();
-        observeResultsForAmvoidguy();
+    if (url.includes("isosky.github.io/MWICombatSimulatorTest/")) {
+        addCombatSimulatorImportButton();
+        observeCombatSimulatorResults();
         return true;
     }
 

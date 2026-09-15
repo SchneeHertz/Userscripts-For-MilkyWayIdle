@@ -1,6 +1,6 @@
-/* 为 https://amvoidguy.github.io/MWICombatSimulatorTest/ 添加导入按钮 */
+/* 为 https://isosky.github.io/MWICombatSimulatorTest/ 添加导入按钮 */
 // Parts of code regarding group export are by Ratatatata (https://greasyfork.org/en/scripts/507255)。
-function addImportButtonForAmvoidguy() {
+function addCombatSimulatorImportButton() {
     const checkElem = () => {
         const selectedElement = document.querySelector(`button#buttonImportExport`);
         if (selectedElement) {
@@ -17,7 +17,7 @@ function addImportButtonForAmvoidguy() {
                 if (getPriceButton) {
                     getPriceButton.click();
                 }
-                importDataForAmvoidguy(button);
+                importDataToCombatSimulator(button);
                 return false;
             };
         }
@@ -25,7 +25,7 @@ function addImportButtonForAmvoidguy() {
     let timer = setInterval(checkElem, 200);
 }
 
-async function importDataForAmvoidguy(button) {
+async function importDataToCombatSimulator(button) {
     const result = constructGroupExportObj();
     if (!result) {
         button.textContent = isZH ? "错误：请先打开游戏页面" : "Error: Open game page first";
@@ -183,7 +183,7 @@ function constructGroupExportObj() {
     return [exportObj, playerIDs, importedPlayerPositions, zone, difficultyTier, isZoneDungeon, isParty];
 }
 
-async function observeResultsForAmvoidguy() {
+async function observeCombatSimulatorResults() {
     let resultDiv = document.querySelector(`div.row`)?.querySelectorAll(`div.col-md-5`)?.[2]?.querySelector(`div.row > div.col-md-5`);
     while (!resultDiv) {
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -210,7 +210,7 @@ async function observeResultsForAmvoidguy() {
     new MutationObserver((mutationsList) => {
         mutationsList.forEach((mutation) => {
             if (mutation.addedNodes.length >= 3) {
-                handleResultForAmvoidguy(mutation.addedNodes, div);
+                handleCombatSimulatorResult(mutation.addedNodes, div);
             }
         });
     }).observe(expDiv, { childList: true, subtree: true });
@@ -227,7 +227,7 @@ function getStoredLevelExperienceTable(): Record<number, number> {
     return table;
 }
 
-function handleResultForAmvoidguy(expNodes, parentDiv) {
+function handleCombatSimulatorResult(expNodes, parentDiv) {
     const isZHIn3rdPartyWebsites = localStorage.getItem("i18nextLng")?.toLowerCase()?.startsWith("zh");
 
     let perHourGainExp: Record<string, number> = {

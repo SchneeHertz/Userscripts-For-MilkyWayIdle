@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools-Lite
 // @namespace    http://tampermonkey.net/
-// @version      25.15.2
+// @version      25.15.3
 // @updateURL    https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js
 // @downloadURL  https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows action number quick inputs. Shows how many actions are needed to reach a certain skill level. Shows skill exp percentages. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows queued action times. Shows DPS statistics. Notifies when idle. Links to third-party tools. Auto-fills the minimum market order price.
@@ -10,8 +10,7 @@
 // @match        https://www.milkywayidle.com/*
 // @match        https://test.milkywayidle.com/*
 // @match        https://www.milkywayidlecn.com/*
-// @match        https://amvoidguy.github.io/MWICombatSimulatorTest/*
-// @match        https://shykai.github.io/MWICombatSimulatorTest/dist/*
+// @match        https://isosky.github.io/MWICombatSimulatorTest/*
 // @grant        GM_addStyle
 // @grant        GM_notification
 // @grant        GM_getValue
@@ -2961,9 +2960,9 @@
 				div = document.createElement("div");
 				div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
 				div.style.color = SCRIPT_COLOR_MAIN;
-				div.innerHTML = isZH ? "战斗模拟 shykai" : "Combat sim shykai";
+				div.innerHTML = isZH ? "战斗模拟 isosky" : "Combat sim isosky";
 				div.addEventListener("click", () => {
-					window.open("https://shykai.github.io/MWICombatSimulatorTest/dist/", "_blank");
+					window.open("https://isosky.github.io/MWICombatSimulatorTest/", "_blank");
 				});
 				targetNode.insertAdjacentElement("afterbegin", div);
 			} else setTimeout(add3rdPartyLinks, 200);
@@ -3700,7 +3699,7 @@
 		addExportButton(obj);
 	}
 	registerMessageHandler("profile_shared", handleProfileShared);
-	function addImportButtonForAmvoidguy() {
+	function addCombatSimulatorImportButton() {
 		const checkElem = () => {
 			const selectedElement = document.querySelector(`button#buttonImportExport`);
 			if (selectedElement) {
@@ -3713,14 +3712,14 @@
 				button.onclick = function() {
 					const getPriceButton = document.querySelector(`button#buttonGetPrices`);
 					if (getPriceButton) getPriceButton.click();
-					importDataForAmvoidguy(button);
+					importDataToCombatSimulator(button);
 					return false;
 				};
 			}
 		};
 		let timer = setInterval(checkElem, 200);
 	}
-	async function importDataForAmvoidguy(button) {
+	async function importDataToCombatSimulator(button) {
 		const result = constructGroupExportObj();
 		if (!result) {
 			button.textContent = isZH ? "错误：请先打开游戏页面" : "Error: Open game page first";
@@ -3862,7 +3861,7 @@
 			isParty
 		];
 	}
-	async function observeResultsForAmvoidguy() {
+	async function observeCombatSimulatorResults() {
 		let resultDiv = document.querySelector(`div.row`)?.querySelectorAll(`div.col-md-5`)?.[2]?.querySelector(`div.row > div.col-md-5`);
 		while (!resultDiv) {
 			await new Promise((resolve) => setTimeout(resolve, 100));
@@ -3885,7 +3884,7 @@
 		resultDiv.append(div);
 		new MutationObserver((mutationsList) => {
 			mutationsList.forEach((mutation) => {
-				if (mutation.addedNodes.length >= 3) handleResultForAmvoidguy(mutation.addedNodes, div);
+				if (mutation.addedNodes.length >= 3) handleCombatSimulatorResult(mutation.addedNodes, div);
 			});
 		}).observe(expDiv, {
 			childList: true,
@@ -3901,7 +3900,7 @@
 		}
 		return table;
 	}
-	function handleResultForAmvoidguy(expNodes, parentDiv) {
+	function handleCombatSimulatorResult(expNodes, parentDiv) {
 		const isZHIn3rdPartyWebsites = localStorage.getItem("i18nextLng")?.toLowerCase()?.startsWith("zh");
 		let perHourGainExp = {
 			stamina: 0,
@@ -4028,10 +4027,9 @@
 		} else listDiv.innerHTML = isZHIn3rdPartyWebsites ? "输入错误" : "Input error";
 	}
 	function initializeExternalTools() {
-		const url = document.URL;
-		if (url.includes("amvoidguy.github.io") || url.includes("shykai.github.io/MWICombatSimulatorTest/")) {
-			addImportButtonForAmvoidguy();
-			observeResultsForAmvoidguy();
+		if (document.URL.includes("isosky.github.io/MWICombatSimulatorTest/")) {
+			addCombatSimulatorImportButton();
+			observeCombatSimulatorResults();
 			return true;
 		}
 		return false;
