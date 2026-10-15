@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools-Lite
 // @namespace    http://tampermonkey.net/
-// @version      25.15.4
+// @version      25.15.3
 // @updateURL    https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js
 // @downloadURL  https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows action number quick inputs. Shows how many actions are needed to reach a certain skill level. Shows skill exp percentages. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows queued action times. Shows DPS statistics. Notifies when idle. Links to third-party tools. Auto-fills the minimum market order price.
@@ -10,7 +10,7 @@
 // @match        https://www.milkywayidle.com/*
 // @match        https://test.milkywayidle.com/*
 // @match        https://www.milkywayidlecn.com/*
-// @match        https://shykai.github.io/MWICombatSimulatorTest/dist/*
+// @match        https://isosky.github.io/MWICombatSimulatorTest/*
 // @grant        GM_addStyle
 // @grant        GM_notification
 // @grant        GM_getValue

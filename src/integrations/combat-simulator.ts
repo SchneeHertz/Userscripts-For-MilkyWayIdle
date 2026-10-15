@@ -1,4 +1,4 @@
-/* 为 shykai 战斗模拟器添加导入按钮 */
+/* 为 https://isosky.github.io/MWICombatSimulatorTest/ 添加导入按钮 */
 // Parts of code regarding group export are by Ratatatata (https://greasyfork.org/en/scripts/507255)。
 function addCombatSimulatorImportButton() {
     const checkElem = () => {
