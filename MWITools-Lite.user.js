@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools-Lite
 // @namespace    http://tampermonkey.net/
-// @version      25.15.3
+// @version      25.15.4
 // @updateURL    https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js
 // @downloadURL  https://raw.githubusercontent.com/SchneeHertz/Userscripts-For-MilkyWayIdle/main/MWITools-Lite.user.js
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows action number quick inputs. Shows how many actions are needed to reach a certain skill level. Shows skill exp percentages. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows queued action times. Shows DPS statistics. Notifies when idle. Links to third-party tools. Auto-fills the minimum market order price.
@@ -10,7 +10,7 @@
 // @match        https://www.milkywayidle.com/*
 // @match        https://test.milkywayidle.com/*
 // @match        https://www.milkywayidlecn.com/*
-// @match        https://isosky.github.io/MWICombatSimulatorTest/*
+// @match        https://shykai.github.io/MWICombatSimulatorTest/dist/*
 // @grant        GM_addStyle
 // @grant        GM_notification
 // @grant        GM_getValue
@@ -2952,17 +2952,9 @@
 				div = document.createElement("div");
 				div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
 				div.style.color = SCRIPT_COLOR_MAIN;
-				div.innerHTML = isZH ? "战斗榜 socko" : "Combat Tracker socko";
+				div.innerHTML = isZH ? "战斗模拟 shykai" : "Combat sim shykai";
 				div.addEventListener("click", () => {
-					window.open("https://sockosnewcombattracker.pages.dev/", "_blank");
-				});
-				targetNode.insertAdjacentElement("afterbegin", div);
-				div = document.createElement("div");
-				div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
-				div.style.color = SCRIPT_COLOR_MAIN;
-				div.innerHTML = isZH ? "战斗模拟 isosky" : "Combat sim isosky";
-				div.addEventListener("click", () => {
-					window.open("https://isosky.github.io/MWICombatSimulatorTest/", "_blank");
+					window.open("https://shykai.github.io/MWICombatSimulatorTest/dist/", "_blank");
 				});
 				targetNode.insertAdjacentElement("afterbegin", div);
 			} else setTimeout(add3rdPartyLinks, 200);
@@ -4027,7 +4019,7 @@
 		} else listDiv.innerHTML = isZHIn3rdPartyWebsites ? "输入错误" : "Input error";
 	}
 	function initializeExternalTools() {
-		if (document.URL.includes("isosky.github.io/MWICombatSimulatorTest/")) {
+		if (document.URL.includes("shykai.github.io/MWICombatSimulatorTest/dist/")) {
 			addCombatSimulatorImportButton();
 			observeCombatSimulatorResults();
 			return true;

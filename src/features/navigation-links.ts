@@ -36,18 +36,9 @@ function add3rdPartyLinks() {
             div = document.createElement("div");
             div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
             div.style.color = SCRIPT_COLOR_MAIN;
-            div.innerHTML = isZH ? "战斗榜 socko" : "Combat Tracker socko";
+            div.innerHTML = isZH ? "战斗模拟 shykai" : "Combat sim shykai";
             div.addEventListener("click", () => {
-                window.open("https://sockosnewcombattracker.pages.dev/", "_blank");
-            });
-            targetNode.insertAdjacentElement("afterbegin", div);
-
-            div = document.createElement("div");
-            div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
-            div.style.color = SCRIPT_COLOR_MAIN;
-            div.innerHTML = isZH ? "战斗模拟 isosky" : "Combat sim isosky";
-            div.addEventListener("click", () => {
-                window.open("https://isosky.github.io/MWICombatSimulatorTest/", "_blank");
+                window.open("https://shykai.github.io/MWICombatSimulatorTest/dist/", "_blank");
             });
             targetNode.insertAdjacentElement("afterbegin", div);
         } else {

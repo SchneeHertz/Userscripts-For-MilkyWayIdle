@@ -1,7 +1,7 @@
 function initializeExternalTools() {
     const url = document.URL;
 
-    if (url.includes("isosky.github.io/MWICombatSimulatorTest/")) {
+    if (url.includes("shykai.github.io/MWICombatSimulatorTest/dist/")) {
         addCombatSimulatorImportButton();
         observeCombatSimulatorResults();
         return true;
